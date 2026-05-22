@@ -355,7 +355,7 @@ export default function App() {
     });
 
     textStr += `-----------------------------------\n`;
-    textStr += `_Calculé avec ColocManager 🚀_`;
+    textStr += `_Calculé avec Gestion Coloc 🚀_`;
 
     navigator.clipboard.writeText(textStr)
       .then(() => showToast('Récapitulatif annuel copié dans le presse-papiers !'))
@@ -376,7 +376,7 @@ export default function App() {
           title="Retourner à l'accueil"
         >
           <Calculator size={24} style={{ color: 'var(--primary)' }} />
-          <span>ColocManager</span>
+          <span>Gestion Coloc</span>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

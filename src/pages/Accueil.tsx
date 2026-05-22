@@ -34,7 +34,7 @@ export default function Accueil({
           Bonjour ! 🏠
         </h2>
         <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-primary)' }}>
-          Bienvenue dans votre outil de gestion colocative. ColocManager vous permet de répartir vos frais annuels de manière 100% équitable au prorata journalier.
+          Bienvenue dans votre outil de gestion colocative. Gestion Coloc vous permet de répartir vos frais annuels de manière 100% équitable au prorata journalier.
         </p>
       </div>
 
