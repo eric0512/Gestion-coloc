@@ -73,8 +73,32 @@ export default function Calculateur({
   // --- États Formulaire de Période ---
   const [newPeriodStart, setNewPeriodStart] = useState('');
   const [newPeriodEnd, setNewPeriodEnd] = useState('');
+  const [manualStart, setManualStart] = useState('');
+  const [manualEnd, setManualEnd] = useState('');
+  const [isManualDate, setIsManualDate] = useState(false);
   const [newPeriodAmount, setNewPeriodAmount] = useState('');
   const [periodError, setPeriodError] = useState('');
+
+  // --- Fonctions d'aide pour saisie de date manuelle ---
+  const formatDateInput = (value: string) => {
+    const digits = value.replace(/\D/g, '').substring(0, 8);
+    const parts = [];
+    if (digits.length > 0) parts.push(digits.substring(0, 2));
+    if (digits.length > 2) parts.push(digits.substring(2, 4));
+    if (digits.length > 4) parts.push(digits.substring(4, 8));
+    return parts.join('/');
+  };
+
+  const frenchToIsoDate = (frenchDate: string) => {
+    const parts = frenchDate.split('/');
+    if (parts.length === 3) {
+      const [day, month, year] = parts;
+      if (day.length === 2 && month.length === 2 && year.length === 4) {
+        return `${year}-${month}-${day}`;
+      }
+    }
+    return '';
+  };
 
   // --- Calculer et synchroniser le montant global ---
   useEffect(() => {
@@ -97,12 +121,15 @@ export default function Calculateur({
     e.preventDefault();
     setPeriodError('');
 
-    if (!newPeriodStart || !newPeriodEnd || !newPeriodAmount) {
-      setPeriodError('Veuillez remplir tous les champs de la période.');
+    const startIso = isManualDate ? frenchToIsoDate(manualStart) : newPeriodStart;
+    const endIso = isManualDate ? frenchToIsoDate(manualEnd) : newPeriodEnd;
+
+    if (!startIso || !endIso) {
+      setPeriodError('Veuillez saisir des dates valides (format JJ/MM/AAAA au clavier).');
       return;
     }
 
-    if (newPeriodEnd < newPeriodStart) {
+    if (endIso < startIso) {
       setPeriodError('La date de fin ne peut pas être antérieure à la date de début.');
       return;
     }
@@ -117,8 +144,8 @@ export default function Calculateur({
 
     const newPeriod: PeriodeCharge = {
       id: `period-${Date.now()}`,
-      dateDebut: newPeriodStart,
-      dateFin: newPeriodEnd,
+      dateDebut: startIso,
+      dateFin: endIso,
       montant: amt
     };
 
@@ -130,6 +157,8 @@ export default function Calculateur({
     // Réinitialiser les champs
     setNewPeriodStart('');
     setNewPeriodEnd('');
+    setManualStart('');
+    setManualEnd('');
     setNewPeriodAmount('');
   };
 
@@ -384,32 +413,69 @@ export default function Calculateur({
             <div className="modal-body" style={{ padding: '20px' }}>
               {/* Formulaire d'ajout de période */}
               <form onSubmit={handleAddPeriod} style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '12px' }}>
-                  Ajouter une période :
-                </span>
-                
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">Date de début *</label>
-                    <input 
-                      type="date" 
-                      className="input-field" 
-                      value={newPeriodStart}
-                      onChange={(e) => setNewPeriodStart(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Date de fin *</label>
-                    <input 
-                      type="date" 
-                      className="input-field" 
-                      value={newPeriodEnd}
-                      onChange={(e) => setNewPeriodEnd(e.target.value)}
-                      required
-                    />
-                  </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    Ajouter une période :
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-text"
+                    onClick={() => setIsManualDate(!isManualDate)}
+                    style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 8px' }}
+                  >
+                    {isManualDate ? '📅 Mode calendrier' : '⌨️ Mode clavier (JJ/MM/AAAA)'}
+                  </button>
                 </div>
+                
+                {isManualDate ? (
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Date de début (JJ/MM/AAAA) *</label>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        value={manualStart}
+                        onChange={(e) => setManualStart(formatDateInput(e.target.value))}
+                        placeholder="Ex: 01/01/2026"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Date de fin (JJ/MM/AAAA) *</label>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        value={manualEnd}
+                        onChange={(e) => setManualEnd(formatDateInput(e.target.value))}
+                        placeholder="Ex: 31/12/2026"
+                        required
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Date de début *</label>
+                      <input 
+                        type="date" 
+                        className="input-field" 
+                        value={newPeriodStart}
+                        onChange={(e) => setNewPeriodStart(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Date de fin *</label>
+                      <input 
+                        type="date" 
+                        className="input-field" 
+                        value={newPeriodEnd}
+                        onChange={(e) => setNewPeriodEnd(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label className="form-label">Montant (€) *</label>
