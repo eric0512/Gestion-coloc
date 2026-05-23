@@ -218,7 +218,7 @@ export default function Calculateur({
             />
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Montant annuel global calculé</label>
+            <label className="form-label">Montant annuel</label>
             <input 
               type="text" 
               className="input-field" 
