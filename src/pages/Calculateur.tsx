@@ -1,6 +1,21 @@
-import { Calculator, DollarSign, Users, AlertCircle, Check, ChevronUp, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Calculator, DollarSign, Users, AlertCircle, Check, ChevronUp, ChevronDown, Flame, Zap, Wifi, Trash2, X, Home } from 'lucide-react';
 import type { Colocataire } from './Colocataires';
 import type { RepartitionMensuelle, CumulAnnuelColoc } from '../App';
+
+interface PeriodeCharge {
+  id: string;
+  dateDebut: string;
+  dateFin: string;
+  montant: number;
+}
+
+interface ChargesDetaillees {
+  gaz: PeriodeCharge[];
+  electricite: PeriodeCharge[];
+  autres: PeriodeCharge[];
+  communes: PeriodeCharge[];
+}
 
 interface CalculateurProps {
   colocataires: Colocataire[];
@@ -35,6 +50,99 @@ export default function Calculateur({
   setExpandedMonth
 }: CalculateurProps) {
   
+  // --- État des charges détaillées ---
+  const [chargesDetaillees, setChargesDetaillees] = useState<ChargesDetaillees>(() => {
+    const saved = localStorage.getItem('coloc_charges_detaillees');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // fallback
+      }
+    }
+    return {
+      gaz: [],
+      electricite: [],
+      autres: [],
+      communes: []
+    };
+  });
+
+  // --- États Modals ---
+  const [showChargeModal, setShowChargeModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<'gaz' | 'electricite' | 'autres' | 'communes' | ''>('');
+
+  // --- États Formulaire de Période ---
+  const [newPeriodStart, setNewPeriodStart] = useState('');
+  const [newPeriodEnd, setNewPeriodEnd] = useState('');
+  const [newPeriodAmount, setNewPeriodAmount] = useState('');
+  const [periodError, setPeriodError] = useState('');
+
+  // --- Calculer et synchroniser le montant global ---
+  useEffect(() => {
+    localStorage.setItem('coloc_charges_detaillees', JSON.stringify(chargesDetaillees));
+    const total = [...chargesDetaillees.gaz, ...chargesDetaillees.electricite, ...chargesDetaillees.autres, ...chargesDetaillees.communes]
+      .reduce((sum, p) => sum + p.montant, 0);
+    setMontantGlobalAnnuel(total.toFixed(2));
+  }, [chargesDetaillees, setMontantGlobalAnnuel]);
+
+  const handleCategorySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const cat = e.target.value as 'gaz' | 'electricite' | 'autres' | 'communes' | '';
+    if (cat) {
+      setSelectedCategory(cat);
+      setShowChargeModal(true);
+      e.target.value = ''; // Reset select
+    }
+  };
+
+  const handleAddPeriod = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPeriodError('');
+
+    if (!newPeriodStart || !newPeriodEnd || !newPeriodAmount) {
+      setPeriodError('Veuillez remplir tous les champs de la période.');
+      return;
+    }
+
+    if (newPeriodEnd < newPeriodStart) {
+      setPeriodError('La date de fin ne peut pas être antérieure à la date de début.');
+      return;
+    }
+
+    const amt = parseFloat(newPeriodAmount);
+    if (isNaN(amt) || amt <= 0) {
+      setPeriodError('Veuillez saisir un montant supérieur à 0.');
+      return;
+    }
+
+    if (!selectedCategory) return;
+
+    const newPeriod: PeriodeCharge = {
+      id: `period-${Date.now()}`,
+      dateDebut: newPeriodStart,
+      dateFin: newPeriodEnd,
+      montant: amt
+    };
+
+    setChargesDetaillees(prev => ({
+      ...prev,
+      [selectedCategory]: [...prev[selectedCategory], newPeriod]
+    }));
+
+    // Réinitialiser les champs
+    setNewPeriodStart('');
+    setNewPeriodEnd('');
+    setNewPeriodAmount('');
+  };
+
+  const handleDeletePeriod = (id: string) => {
+    if (!selectedCategory) return;
+    setChargesDetaillees(prev => ({
+      ...prev,
+      [selectedCategory]: prev[selectedCategory].filter(p => p.id !== id)
+    }));
+  };
+
   const totalJoursPresenceTous = currentResult 
     ? currentResult.cumulsAnnuels.reduce((sum, c) => sum + c.totalJoursPresence, 0)
     : 0;
@@ -71,8 +179,8 @@ export default function Calculateur({
           <span>Saisie des Charges Annuelles</span>
         </div>
         
-        <div className="form-row">
-          <div className="form-group">
+        <div className="form-row" style={{ marginBottom: '16px' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Sélectionner l'année</label>
             <input 
               type="number" 
@@ -82,29 +190,31 @@ export default function Calculateur({
               placeholder="Ex: 2026"
             />
           </div>
-          <div className="form-group">
-            <label className="form-label">Montant annuel global</label>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Montant annuel global calculé</label>
             <input 
-              type="number" 
+              type="text" 
               className="input-field" 
-              value={montantGlobalAnnuel}
-              onChange={(e) => setMontantGlobalAnnuel(e.target.value)}
-              placeholder="Ex: 7200"
-              min="0"
-              step="0.01"
+              value={`${parseFloat(montantGlobalAnnuel || '0').toFixed(2)} €`}
+              disabled
+              style={{ fontWeight: 'bold', color: 'var(--primary)', backgroundColor: 'var(--input-bg)' }}
             />
           </div>
         </div>
 
         <div className="form-group" style={{ marginBottom: 0 }}>
-          <label className="form-label">Libellé de la charge</label>
-          <input 
-            type="text" 
+          <label className="form-label">Saisie détaillée par catégorie</label>
+          <select 
             className="input-field" 
-            value={calculDescription}
-            onChange={(e) => setCalculDescription(e.target.value)}
-            placeholder="Ex: Loyer annuel"
-          />
+            onChange={handleCategorySelect}
+            defaultValue=""
+          >
+            <option value="" disabled>-- Choisir une catégorie --</option>
+            <option value="gaz">🔥 Gaz</option>
+            <option value="electricite">⚡ Électricité</option>
+            <option value="autres">🌐 Autres Charges (Internet/Chaudiere)</option>
+            <option value="communes">🏠 Charges communes</option>
+          </select>
         </div>
       </div>
 
@@ -250,6 +360,151 @@ export default function Calculateur({
           </>
         )}
       </div>
+
+      {/* Modal de Saisie des Charges par Catégorie */}
+      {showChargeModal && selectedCategory && (
+        <div className="modal-overlay" onClick={() => { setShowChargeModal(false); setSelectedCategory(''); }}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+            <div className="modal-header">
+              <div className="modal-title">
+                {selectedCategory === 'gaz' && <Flame size={18} style={{ color: '#ef4444' }} />}
+                {selectedCategory === 'electricite' && <Zap size={18} style={{ color: '#eab308' }} />}
+                {selectedCategory === 'autres' && <Wifi size={18} style={{ color: '#06b6d4' }} />}
+                {selectedCategory === 'communes' && <Home size={18} style={{ color: '#10b981' }} />}
+                <span style={{ marginLeft: '4px' }}>
+                  {selectedCategory === 'gaz' && 'Saisie du Gaz'}
+                  {selectedCategory === 'electricite' && 'Saisie de l\'Électricité'}
+                  {selectedCategory === 'autres' && 'Saisie des Autres Charges'}
+                  {selectedCategory === 'communes' && 'Saisie des Charges communes'}
+                </span>
+              </div>
+              <button className="icon-btn" onClick={() => { setShowChargeModal(false); setSelectedCategory(''); }} aria-label="Fermer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '20px' }}>
+              {/* Formulaire d'ajout de période */}
+              <form onSubmit={handleAddPeriod} style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '12px' }}>
+                  Ajouter une période :
+                </span>
+                
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Date de début *</label>
+                    <input 
+                      type="date" 
+                      className="input-field" 
+                      value={newPeriodStart}
+                      onChange={(e) => setNewPeriodStart(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Date de fin *</label>
+                    <input 
+                      type="date" 
+                      className="input-field" 
+                      value={newPeriodEnd}
+                      onChange={(e) => setNewPeriodEnd(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Montant (€) *</label>
+                  <input 
+                    type="number" 
+                    className="input-field" 
+                    value={newPeriodAmount}
+                    onChange={(e) => setNewPeriodAmount(e.target.value)}
+                    placeholder="Ex: 150.00"
+                    min="0.01"
+                    step="0.01"
+                    required
+                  />
+                </div>
+
+                {periodError && (
+                  <div style={{ color: 'var(--danger)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '12px' }}>
+                    <AlertCircle size={14} />
+                    <span>{periodError}</span>
+                  </div>
+                )}
+
+                <button 
+                  type="submit" 
+                  className="btn btn-secondary" 
+                  style={{ fontSize: '14px', padding: '10px 16px', background: 'var(--primary-light)', color: 'var(--primary)', border: 'none', fontWeight: 'bold' }}
+                >
+                  Ajouter cette période
+                </button>
+              </form>
+
+              {/* Liste des périodes déjà saisies */}
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '12px' }}>
+                Périodes enregistrées :
+              </span>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '200px', overflowY: 'auto' }}>
+                {chargesDetaillees[selectedCategory].length === 0 ? (
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', padding: '12px 0' }}>
+                    Aucune période saisie pour le moment.
+                  </p>
+                ) : (
+                  chargesDetaillees[selectedCategory].map((p) => (
+                    <div 
+                      key={p.id} 
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        padding: '10px 12px', 
+                        backgroundColor: 'var(--input-bg)', 
+                        border: '1px solid var(--border-color)', 
+                        borderRadius: 'var(--radius-md)' 
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          Du {new Date(p.dateDebut).toLocaleDateString('fr-FR')} au {new Date(p.dateFin).toLocaleDateString('fr-FR')}
+                        </span>
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                          {p.montant.toFixed(2)} €
+                        </span>
+                      </div>
+                      <button 
+                        type="button" 
+                        className="icon-btn icon-btn-danger" 
+                        onClick={() => handleDeletePeriod(p.id)}
+                        aria-label="Supprimer cette période"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--primary)' }}>
+                Total : {chargesDetaillees[selectedCategory].reduce((sum, p) => sum + p.montant, 0).toFixed(2)} €
+              </div>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={() => { setShowChargeModal(false); setSelectedCategory(''); }} 
+                style={{ width: 'auto', padding: '10px 20px', fontSize: '14px' }}
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
