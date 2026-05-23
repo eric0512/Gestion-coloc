@@ -41,8 +41,6 @@ export default function Calculateur({
   setSelectedYear,
   montantGlobalAnnuel,
   setMontantGlobalAnnuel,
-  calculDescription,
-  setCalculDescription,
   currentResult,
   onSaveCalculation,
   onNavigate,
