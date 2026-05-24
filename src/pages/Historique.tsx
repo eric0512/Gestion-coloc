@@ -71,9 +71,23 @@ export default function Historique({
                   BILAN CUMULÉ DU PAR COLOCATAIRE :
                 </span>
                 {calc.cumulsAnnuels.map((p, idx) => (
-                  <div key={idx} className="history-share-line" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', borderBottom: '1px dashed var(--border-color)', paddingBottom: '4px' }}>
-                    <span>{p.nomComplet} ({p.totalJoursPresence}j)</span>
-                    <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{p.totalDu.toFixed(2)} €</span>
+                  <div key={idx} style={{ borderBottom: '1px dashed var(--border-color)', paddingBottom: '8px', paddingTop: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600 }}>
+                      <span style={{ color: 'var(--text-primary)' }}>{p.nomComplet}</span>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>{p.totalJoursPresence} jours</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      <span>Dû : <strong style={{ color: 'var(--text-primary)' }}>{p.totalDu.toFixed(2)} €</strong></span>
+                      <span>Avances : <strong style={{ color: 'var(--text-primary)' }}>{(p.totalAvances || 0).toFixed(2)} €</strong></span>
+                      <span>
+                        Solde :{' '}
+                        <strong style={{ 
+                          color: (p.soldeAnnuel || 0) > 0 ? 'var(--danger)' : (p.soldeAnnuel || 0) < 0 ? 'var(--success)' : 'var(--text-primary)' 
+                        }}>
+                          {(p.soldeAnnuel || 0) > 0 ? '+' : ''}{(p.soldeAnnuel || 0).toFixed(2)} €
+                        </strong>
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>

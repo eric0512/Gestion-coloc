@@ -23,6 +23,8 @@ export interface PartCalcul {
   nomComplet: string;
   joursPresence: number;
   montantDu: number;
+  avanceDue?: number;
+  solde?: number;
 }
 
 export interface RepartitionMensuelle {
@@ -40,6 +42,8 @@ export interface CumulAnnuelColoc {
   nomComplet: string;
   totalDu: number;
   totalJoursPresence: number;
+  totalAvances?: number;
+  soldeAnnuel?: number;
 }
 
 export interface CalculAnnuel {
@@ -160,6 +164,18 @@ export default function App() {
     const annualAmount = parseFloat(montantGlobalAnnuel) || 0;
     const monthlyAmount = annualAmount / 12;
 
+    // Charger l'avance mensuelle paramétrée pour l'année
+    const savedAvances = localStorage.getItem('coloc_avances_mensuelles');
+    let avancesMap: { [year: number]: number } = { 2026: 150 };
+    if (savedAvances) {
+      try {
+        avancesMap = JSON.parse(savedAvances);
+      } catch (e) {
+        // fallback
+      }
+    }
+    const currentAvanceMensuelle = avancesMap[selectedYear] !== undefined ? avancesMap[selectedYear] : 150;
+
     const formatDateString = (d: Date) => {
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -168,10 +184,10 @@ export default function App() {
     };
 
     const repartitionsMensuelles: RepartitionMensuelle[] = [];
-    const cumulsColocsMap: { [colocId: string]: { totalDu: number; totalJours: number; nomComplet: string } } = {};
+    const cumulsColocsMap: { [colocId: string]: { totalDu: number; totalJours: number; totalAvances: number; nomComplet: string } } = {};
 
     colocataires.forEach(c => {
-      cumulsColocsMap[c.id] = { totalDu: 0, totalJours: 0, nomComplet: `${c.prenom} ${c.nom}` };
+      cumulsColocsMap[c.id] = { totalDu: 0, totalJours: 0, totalAvances: 0, nomComplet: `${c.prenom} ${c.nom}` };
     });
 
     for (let m = 0; m < 12; m++) {
@@ -201,7 +217,9 @@ export default function App() {
           colocId: coloc.id,
           nomComplet: `${coloc.prenom} ${coloc.nom}`,
           joursPresence: activeDaysInMonth,
-          montantDu: 0
+          montantDu: 0,
+          avanceDue: Math.round((activeDaysInMonth * (currentAvanceMensuelle / daysInMonth)) * 100) / 100,
+          solde: 0
         });
 
         totalJoursColocs += activeDaysInMonth;
@@ -213,14 +231,19 @@ export default function App() {
         const rawMontant = part.joursPresence * tauxJournalier;
         const montantDu = Math.round(rawMontant * 100) / 100;
         
+        const avanceDue = part.avanceDue || 0;
+        const solde = Math.round((montantDu - avanceDue) * 100) / 100;
+
         if (cumulsColocsMap[part.colocId]) {
           cumulsColocsMap[part.colocId].totalDu += montantDu;
           cumulsColocsMap[part.colocId].totalJours += part.joursPresence;
+          cumulsColocsMap[part.colocId].totalAvances += avanceDue;
         }
 
         return {
           ...part,
-          montantDu
+          montantDu,
+          solde
         };
       });
 
@@ -236,6 +259,7 @@ export default function App() {
           const partAjustee = finalParts[indexMax];
           const ancienMontant = partAjustee.montantDu;
           partAjustee.montantDu = Math.round((ancienMontant + ecartMois) * 100) / 100;
+          partAjustee.solde = Math.round((partAjustee.montantDu - (partAjustee.avanceDue || 0)) * 100) / 100;
 
           if (cumulsColocsMap[partAjustee.colocId]) {
             cumulsColocsMap[partAjustee.colocId].totalDu += (partAjustee.montantDu - ancienMontant);
@@ -254,12 +278,20 @@ export default function App() {
       });
     }
 
-    const cumulsAnnuels: CumulAnnuelColoc[] = Object.keys(cumulsColocsMap).map(colocId => ({
-      colocId,
-      nomComplet: cumulsColocsMap[colocId].nomComplet,
-      totalDu: Math.round(cumulsColocsMap[colocId].totalDu * 100) / 100,
-      totalJoursPresence: cumulsColocsMap[colocId].totalJours
-    }));
+    const cumulsAnnuels: CumulAnnuelColoc[] = Object.keys(cumulsColocsMap).map(colocId => {
+      const totalDu = Math.round(cumulsColocsMap[colocId].totalDu * 100) / 100;
+      const totalAvances = Math.round(cumulsColocsMap[colocId].totalAvances * 100) / 100;
+      const soldeAnnuel = Math.round((totalDu - totalAvances) * 100) / 100;
+
+      return {
+        colocId,
+        nomComplet: cumulsColocsMap[colocId].nomComplet,
+        totalDu,
+        totalJoursPresence: cumulsColocsMap[colocId].totalJours,
+        totalAvances,
+        soldeAnnuel
+      };
+    });
 
     return {
       repartitionsMensuelles,
@@ -343,22 +375,32 @@ export default function App() {
 
   // --- Partage WhatsApp ---
   const handleShareCalcul = (calc: CalculAnnuel) => {
-    let textStr = `📊 *RAPPORT ANNUEL DES CHARGES (${calc.annee})*\n`;
+    let textStr = `📊 *RÉGULARISATION ANNUELLE DES CHARGES (${calc.annee})*\n`;
     textStr += `🏷️ *Libellé :* ${calc.titre}\n`;
-    textStr += `💰 *Budget Annuel :* ${calc.montantGlobalAnnuel.toFixed(2)} €\n`;
-    textStr += `│  Soit ${(calc.montantGlobalAnnuel / 12).toFixed(2)} € / mois répartis au jour le jour\n`;
+    textStr += `💰 *Budget Annuel Réel :* ${calc.montantGlobalAnnuel.toFixed(2)} €\n`;
     textStr += `-----------------------------------\n`;
-    textStr += `*CUMUL ANNUEL DÛ PAR COLOCATAIRE :*\n`;
+    textStr += `*BILAN PAR COLOCATAIRE :*\n\n`;
 
     calc.cumulsAnnuels.forEach(cumul => {
-      textStr += `👤 *${cumul.nomComplet}* : ${cumul.totalJoursPresence} jours de présence ➔ *${cumul.totalDu.toFixed(2)} €*\n`;
+      const totalDu = cumul.totalDu;
+      const totalAvances = cumul.totalAvances || 0;
+      const soldeAnnuel = cumul.soldeAnnuel || 0;
+      const soldeSign = soldeAnnuel > 0 
+        ? `⚠️ Reste à payer : +${soldeAnnuel.toFixed(2)}` 
+        : `✅ Trop-perçu à rembourser : ${soldeAnnuel.toFixed(2)}`;
+
+      textStr += `👤 *${cumul.nomComplet}*\n`;
+      textStr += `📅 Présence : ${cumul.totalJoursPresence} jours\n`;
+      textStr += `💵 Part réelle due : ${totalDu.toFixed(2)} €\n`;
+      textStr += `📥 Avances versées : ${totalAvances.toFixed(2)} €\n`;
+      textStr += `⚖️ *Solde : ${soldeSign} €*\n\n`;
     });
 
     textStr += `-----------------------------------\n`;
     textStr += `_Calculé avec Gestion Coloc 🚀_`;
 
     navigator.clipboard.writeText(textStr)
-      .then(() => showToast('Récapitulatif annuel copié dans le presse-papiers !'))
+      .then(() => showToast('Récapitulatif de régularisation copié dans le presse-papiers !'))
       .catch(() => showToast('Erreur lors de la copie'));
   };
 

@@ -424,23 +424,34 @@ export default function Calculateur({
                                     key={part.colocId} 
                                     style={{ 
                                       display: 'flex', 
-                                      justifyContent: 'space-between',
-                                      alignItems: 'center',
-                                      padding: '8px 0',
-                                      fontSize: '13px',
+                                      flexDirection: 'column',
+                                      gap: '4px',
+                                      padding: '10px 0',
                                       borderBottom: '1px dashed var(--border-color)',
                                       opacity: isPresent ? 1 : 0.4
                                     }}
                                   >
-                                    <span>{part.nomComplet}</span>
-                                    <div style={{ textAlign: 'right' }}>
-                                      <div style={{ fontWeight: 700, color: isPresent ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-                                        {part.montantDu.toFixed(2)} €
-                                      </div>
-                                      <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>{part.nomComplet}</span>
+                                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                                         {part.joursPresence} jours / {rep.daysInMonth} présents
-                                      </div>
+                                      </span>
                                     </div>
+                                    
+                                    {isPresent && (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                        <span>Charge : <strong style={{ color: 'var(--text-primary)' }}>{part.montantDu.toFixed(2)} €</strong></span>
+                                        <span>Avance : <strong style={{ color: 'var(--text-primary)' }}>{(part.avanceDue || 0).toFixed(2)} €</strong></span>
+                                        <span>
+                                          Solde :{' '}
+                                          <strong style={{ 
+                                            color: (part.solde || 0) > 0 ? 'var(--danger)' : (part.solde || 0) < 0 ? 'var(--success)' : 'var(--text-primary)' 
+                                          }}>
+                                            {(part.solde || 0) > 0 ? '+' : ''}{(part.solde || 0).toFixed(2)} €
+                                          </strong>
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}
