@@ -66,6 +66,59 @@ export default function Calculateur({
     };
   });
 
+  // --- État pour l'avance mensuelle par année ---
+  const [avancesMensuelles, setAvancesMensuelles] = useState<{ [year: number]: number }>(() => {
+    const saved = localStorage.getItem('coloc_avances_mensuelles');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // fallback
+      }
+    }
+    return { 2026: 150 }; // valeur par défaut initiale
+  });
+
+  // --- Effet pour initialiser/reconduire l'avance mensuelle sur les nouvelles années ---
+  useEffect(() => {
+    setAvancesMensuelles(prev => {
+      if (prev[selectedYear] !== undefined) return prev;
+      
+      const yearsWithValues = Object.keys(prev)
+        .map(Number)
+        .filter(y => y < selectedYear)
+        .sort((a, b) => b - a);
+
+      let carryOverValue = 150;
+      if (yearsWithValues.length > 0) {
+        carryOverValue = prev[yearsWithValues[0]];
+      } else {
+        const allYears = Object.keys(prev).map(Number).sort((a, b) => a - b);
+        if (allYears.length > 0) {
+          carryOverValue = prev[allYears[0]];
+        }
+      }
+
+      const updated = { ...prev, [selectedYear]: carryOverValue };
+      localStorage.setItem('coloc_avances_mensuelles', JSON.stringify(updated));
+      return updated;
+    });
+  }, [selectedYear]);
+
+  const handleYearChange = (newYear: number) => {
+    setSelectedYear(newYear);
+  };
+
+  const handleAvanceChange = (value: number) => {
+    setAvancesMensuelles(prev => {
+      const updated = { ...prev, [selectedYear]: value };
+      localStorage.setItem('coloc_avances_mensuelles', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const avanceMensuelle = avancesMensuelles[selectedYear] !== undefined ? avancesMensuelles[selectedYear] : 150;
+
   // --- États Modals ---
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<'gaz' | 'electricite' | 'autres' | 'communes' | ''>('');
@@ -206,26 +259,53 @@ export default function Calculateur({
           <span>Saisie des Charges Annuelles</span>
         </div>
         
-        <div className="form-row" style={{ marginBottom: '16px' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Sélectionner l'année</label>
-            <input 
-              type="number" 
-              className="input-field" 
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value) || 2026)}
-              placeholder="Ex: 2026"
-            />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Sélectionner l'année</label>
+              <input 
+                type="number" 
+                className="input-field" 
+                value={selectedYear}
+                onChange={(e) => handleYearChange(parseInt(e.target.value) || 2026)}
+                placeholder="Ex: 2026"
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Montant de l'avance mensuelle (€)</label>
+              <input 
+                type="number" 
+                className="input-field" 
+                value={avanceMensuelle || ''}
+                onChange={(e) => handleAvanceChange(parseFloat(e.target.value) || 0)}
+                placeholder="Ex: 150.00"
+                min="0"
+                step="0.01"
+              />
+            </div>
           </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Montant annuel</label>
-            <input 
-              type="text" 
-              className="input-field" 
-              value={`${parseFloat(montantGlobalAnnuel || '0').toFixed(2)} €`}
-              disabled
-              style={{ fontWeight: 'bold', color: 'var(--primary)', backgroundColor: 'var(--input-bg)' }}
-            />
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Montant annuel des charges</label>
+              <input 
+                type="text" 
+                className="input-field" 
+                value={`${parseFloat(montantGlobalAnnuel || '0').toFixed(2)} €`}
+                disabled
+                style={{ fontWeight: 'bold', color: 'var(--primary)', backgroundColor: 'var(--input-bg)' }}
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Avances annuelles cumulées</label>
+              <input 
+                type="text" 
+                className="input-field" 
+                value={`${(avanceMensuelle * 12).toFixed(2)} €`}
+                disabled
+                style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--input-bg)' }}
+              />
+            </div>
           </div>
         </div>
 
