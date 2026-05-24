@@ -63,6 +63,32 @@
   --danger-light: rgba(248, 113, 113, 0.15);
 }
 
+[data-theme="dim"] {
+  /* Palette Intermédiaire Premium / Bleuté & Slate */
+  --bg-app: #0f172a;       /* slate-900 */
+  --bg-phone: #1e293b;     /* slate-800 */
+  --primary: #818cf8;      /* indigo-400 */
+  --primary-light: rgba(129, 140, 248, 0.15);
+  --primary-dark: #4f46e5;
+  --secondary: #2dd4bf;    /* teal-400 */
+  --secondary-light: rgba(45, 212, 191, 0.15);
+  --accent: #fbbf24;
+  
+  --text-primary: #f8fafc;  /* slate-50 */
+  --text-secondary: #94a3b8; /* slate-400 */
+  --text-inverse: #1e293b;
+  
+  --border-color: #334155;  /* slate-700 */
+  --input-bg: #0f172a;      /* slate-900 */
+  --card-bg: rgba(15, 23, 42, 0.45);
+  --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+  
+  --success: #34d399;
+  --success-light: rgba(52, 211, 153, 0.15);
+  --danger: #f87171;
+  --danger-light: rgba(248, 113, 113, 0.15);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -856,7 +882,8 @@ body {
 }
 
 /* Adaptation de la couleur de l'icône de calendrier native selon le thème actif */
-[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="dim"] input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
 }
 

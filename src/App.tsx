@@ -5,6 +5,7 @@ import {
   History, 
   Moon, 
   Sun, 
+  SunMoon,
   Check, 
   Home,
   Monitor,
@@ -91,7 +92,7 @@ export default function App() {
   const [colocataires, setColocataires] = useState<Colocataire[]>([]);
   const [calculsAnnuels, setCalculsAnnuels] = useState<CalculAnnuel[]>([]);
   const [activeTab, setActiveTab] = useState<'home' | 'colocs' | 'calculator' | 'history'>('home');
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [theme, setTheme] = useState<'light' | 'dim' | 'dark'>('dark');
   const [layoutMode, setLayoutMode] = useState<'phone' | 'fullscreen'>('phone');
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
 
@@ -106,7 +107,7 @@ export default function App() {
   // --- Initialisation & LocalStorage ---
   useEffect(() => {
     // Thème par défaut
-    const savedTheme = localStorage.getItem('coloc_theme') as 'light' | 'dark' | null;
+    const savedTheme = localStorage.getItem('coloc_theme') as 'light' | 'dim' | 'dark' | null;
     const initialTheme = savedTheme || 'dark';
     setTheme(initialTheme);
     document.documentElement.setAttribute('data-theme', initialTheme);
@@ -135,11 +136,22 @@ export default function App() {
 
   // --- Thème ---
   const toggleTheme = () => {
-    const nextTheme = theme === 'light' ? 'dark' : 'light';
+    let nextTheme: 'light' | 'dim' | 'dark' = 'dark';
+    if (theme === 'light') {
+      nextTheme = 'dim';
+    } else if (theme === 'dim') {
+      nextTheme = 'dark';
+    } else {
+      nextTheme = 'light';
+    }
     setTheme(nextTheme);
     document.documentElement.setAttribute('data-theme', nextTheme);
     localStorage.setItem('coloc_theme', nextTheme);
-    showToast(`Mode ${nextTheme === 'light' ? 'clair' : 'sombre'} activé`);
+    
+    let modeLabel = 'sombre';
+    if (nextTheme === 'light') modeLabel = 'clair';
+    if (nextTheme === 'dim') modeLabel = 'intermédiaire (ardoise)';
+    showToast(`Mode ${modeLabel} activé`);
   };
 
   // --- Mode de mise en page (Plein Écran / Téléphone) ---
@@ -435,9 +447,12 @@ export default function App() {
           <button 
             className="theme-toggle-btn" 
             onClick={toggleTheme}
+            title={theme === 'light' ? "Passer au thème intermédiaire (Ardoise)" : theme === 'dim' ? "Passer au thème sombre" : "Passer au thème clair"}
             aria-label="Changer le thème"
           >
-            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+            {theme === 'light' && <Sun size={20} style={{ color: '#fbbf24' }} />}
+            {theme === 'dim' && <SunMoon size={20} style={{ color: 'var(--primary)' }} />}
+            {theme === 'dark' && <Moon size={20} style={{ color: '#a5b4fc' }} />}
           </button>
         </div>
       </header>
