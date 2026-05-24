@@ -99,7 +99,8 @@ export default function App() {
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
 
   // --- États de Synchronisation Supabase ---
-  const [targetTable, setTargetTable] = useState<string>('coloc_sauvegarde');
+  const [targetTable, setTargetTable] = useState<string>('code_utilisateurs');
+  const [syncRowId, setSyncRowId] = useState<string | number>(1);
   const [hasLoadedFromSupabase, setHasLoadedFromSupabase] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
@@ -140,23 +141,36 @@ export default function App() {
 
     // Détection de la table Supabase et chargement des données en ligne
     async function detectAndLoad() {
-      let activeTable = 'coloc_sauvegarde';
+      let activeTable = 'code_utilisateurs';
+      let activeRowId: string | number = 1;
+      
       try {
-        const { error } = await supabase.from('coloc_sauvegarde').select('id').limit(1);
-        if (error && error.code === '42P01') {
-          activeTable = 'coloc-utilisateurs';
+        // Tente d'accéder à la colonne Data dans code_utilisateurs
+        const { error } = await supabase.from('code_utilisateurs').select('Data').limit(1);
+        if (error) {
+          // Si code_utilisateurs n'existe pas ou fait erreur, essayer coloc_sauvegarde
+          const { error: err2 } = await supabase.from('coloc_sauvegarde').select('id').limit(1);
+          if (!err2) {
+            activeTable = 'coloc_sauvegarde';
+            activeRowId = 'global_sync';
+          } else {
+            activeTable = 'coloc-utilisateurs';
+            activeRowId = 'global_sync';
+          }
         }
       } catch (e) {
         // fallback
       }
+      
       setTargetTable(activeTable);
+      setSyncRowId(activeRowId);
 
       // Chargement en ligne
       try {
         const { data, error } = await supabase
           .from(activeTable)
           .select('Data')
-          .eq('id', 'global_sync')
+          .eq('id', activeRowId)
           .single();
 
         if (!error && data && data.Data) {
@@ -207,7 +221,7 @@ export default function App() {
 
       const { error } = await supabase
         .from(targetTable)
-        .upsert({ id: 'global_sync', Data: backupData });
+        .upsert({ id: syncRowId, Data: backupData });
 
       if (error) {
         console.error('Erreur upsert Supabase', error);
