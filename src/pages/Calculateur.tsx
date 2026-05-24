@@ -287,7 +287,7 @@ export default function Calculateur({
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Montant annuel des charges</label>
+              <label className="form-label">Charges annuelles</label>
               <input 
                 type="text" 
                 className="input-field" 
