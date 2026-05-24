@@ -280,10 +280,31 @@ export default function App() {
       cumulsColocsMap[c.id] = { totalDu: 0, totalJours: 0, totalAvances: 0, nomComplet: `${c.prenom} ${c.nom}` };
     });
 
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11
+    const currentDay = now.getDate();
+
     for (let m = 0; m < 12; m++) {
       const startDate = new Date(selectedYear, m, 1);
       const endDate = new Date(selectedYear, m + 1, 0);
       const daysInMonth = endDate.getDate();
+
+      // Ajuster la date limite de calcul pour le mois en cours ou les mois futurs
+      let limitEndDate = new Date(endDate.getTime());
+      
+      if (selectedYear === currentYear) {
+        if (m > currentMonth) {
+          // Mois futur : aucune présence
+          limitEndDate = new Date(selectedYear, m, 0);
+        } else if (m === currentMonth) {
+          // Mois en cours : limité à aujourd'hui (date de consultation)
+          limitEndDate = new Date(selectedYear, m, currentDay);
+        }
+      } else if (selectedYear > currentYear) {
+        // Année future : aucune présence
+        limitEndDate = new Date(selectedYear, m, 0);
+      }
 
       const parts: PartCalcul[] = [];
       let totalJoursColocs = 0;
@@ -292,7 +313,7 @@ export default function App() {
         let activeDaysInMonth = 0;
 
         const current = new Date(startDate.getTime());
-        while (current <= endDate) {
+        while (current <= limitEndDate) {
           const currentStr = formatDateString(current);
           const hasEntered = currentStr >= coloc.dateEntree;
           const hasNotLeft = !coloc.dateSortie || currentStr <= coloc.dateSortie;
