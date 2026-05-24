@@ -9,7 +9,8 @@ import {
   Check, 
   Home,
   Monitor,
-  Smartphone
+  Smartphone,
+  RefreshCw
 } from 'lucide-react';
 
 import Accueil from './pages/Accueil';
@@ -17,6 +18,7 @@ import Colocataires from './pages/Colocataires';
 import type { Colocataire } from './pages/Colocataires';
 import Calculateur from './pages/Calculateur';
 import Historique from './pages/Historique';
+import { supabase } from './supabaseClient';
 
 // --- Interfaces & Types partagés ---
 export interface PartCalcul {
@@ -96,6 +98,11 @@ export default function App() {
   const [layoutMode, setLayoutMode] = useState<'phone' | 'fullscreen'>('phone');
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
 
+  // --- États de Synchronisation Supabase ---
+  const [targetTable, setTargetTable] = useState<string>('coloc_sauvegarde');
+  const [hasLoadedFromSupabase, setHasLoadedFromSupabase] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
   // --- Accordéon de détails mensuels ---
   const [expandedMonth, setExpandedMonth] = useState<number | null>(4); // Mai ouvert par défaut
 
@@ -104,7 +111,7 @@ export default function App() {
   const [montantGlobalAnnuel, setMontantGlobalAnnuel] = useState<string>('7200'); // 7200 € / an par défaut
   const [calculDescription, setCalculDescription] = useState('Charges Annuelles Générales');
 
-  // --- Initialisation & LocalStorage ---
+  // --- Initialisation & LocalStorage & Chargement Supabase ---
   useEffect(() => {
     // Thème par défaut
     const savedTheme = localStorage.getItem('coloc_theme') as 'light' | 'dim' | 'dark' | null;
@@ -118,7 +125,7 @@ export default function App() {
       setLayoutMode(savedLayout);
     }
 
-    // Chargement des colocataires
+    // Chargement local initial (fallback rapide)
     const savedColocs = localStorage.getItem('coloc_colocataires');
     if (savedColocs) {
       setColocataires(JSON.parse(savedColocs));
@@ -126,13 +133,96 @@ export default function App() {
       setColocataires(SEED_COLOCATAIRES);
       localStorage.setItem('coloc_colocataires', JSON.stringify(SEED_COLOCATAIRES));
     }
-
-    // Chargement des calculs annuels
     const savedCalculs = localStorage.getItem('coloc_calculs_annuels');
     if (savedCalculs) {
       setCalculsAnnuels(JSON.parse(savedCalculs));
     }
+
+    // Détection de la table Supabase et chargement des données en ligne
+    async function detectAndLoad() {
+      let activeTable = 'coloc_sauvegarde';
+      try {
+        const { error } = await supabase.from('coloc_sauvegarde').select('id').limit(1);
+        if (error && error.code === '42P01') {
+          activeTable = 'coloc-utilisateurs';
+        }
+      } catch (e) {
+        // fallback
+      }
+      setTargetTable(activeTable);
+
+      // Chargement en ligne
+      try {
+        const { data, error } = await supabase
+          .from(activeTable)
+          .select('Data')
+          .eq('id', 'global_sync')
+          .single();
+
+        if (!error && data && data.Data) {
+          const parsed = data.Data;
+          if (parsed.colocataires) {
+            setColocataires(parsed.colocataires);
+            localStorage.setItem('coloc_colocataires', JSON.stringify(parsed.colocataires));
+          }
+          if (parsed.calculsAnnuels) {
+            setCalculsAnnuels(parsed.calculsAnnuels);
+            localStorage.setItem('coloc_calculs_annuels', JSON.stringify(parsed.calculsAnnuels));
+          }
+          if (parsed.avancesMensuelles) {
+            localStorage.setItem('coloc_avances_mensuelles', JSON.stringify(parsed.avancesMensuelles));
+          }
+          if (parsed.chargesDetaillees) {
+            localStorage.setItem('coloc_charges_detaillees', JSON.stringify(parsed.chargesDetaillees));
+          }
+          showToast('🔄 Synchronisé avec Supabase en ligne !');
+        }
+      } catch (e) {
+        console.error('Erreur chargement Supabase', e);
+      } finally {
+        setHasLoadedFromSupabase(true);
+      }
+    }
+
+    // Attendre un court instant après le premier rendu pour charger depuis Supabase
+    setTimeout(() => detectAndLoad(), 600);
   }, []);
+
+  // --- Fonction de sauvegarde automatique vers Supabase ---
+  const syncToSupabase = async (
+    currentColocs: Colocataire[],
+    currentCalculs: CalculAnnuel[]
+  ) => {
+    // Ne pas écraser la base si nous n'avons pas encore récupéré les données au démarrage
+    if (!hasLoadedFromSupabase) return;
+
+    try {
+      setIsSyncing(true);
+      const backupData = {
+        colocataires: currentColocs,
+        calculsAnnuels: currentCalculs,
+        avancesMensuelles: JSON.parse(localStorage.getItem('coloc_avances_mensuelles') || '{}'),
+        chargesDetaillees: JSON.parse(localStorage.getItem('coloc_charges_detaillees') || '{}')
+      };
+
+      const { error } = await supabase
+        .from(targetTable)
+        .upsert({ id: 'global_sync', Data: backupData });
+
+      if (error) {
+        console.error('Erreur upsert Supabase', error);
+      }
+    } catch (e) {
+      console.error('Erreur synchronisation Supabase', e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleTriggerSync = () => {
+    // Utilise les états actuels
+    syncToSupabase(colocataires, calculsAnnuels);
+  };
 
   // --- Thème ---
   const toggleTheme = () => {
@@ -335,6 +425,7 @@ export default function App() {
 
     setColocataires(updatedColocs);
     localStorage.setItem('coloc_colocataires', JSON.stringify(updatedColocs));
+    syncToSupabase(updatedColocs, calculsAnnuels);
   };
 
   const handleDeleteColoc = (id: string, name: string) => {
@@ -343,6 +434,7 @@ export default function App() {
       setColocataires(updated);
       localStorage.setItem('coloc_colocataires', JSON.stringify(updated));
       showToast('Colocataire supprimé');
+      syncToSupabase(updated, calculsAnnuels);
     }
   };
 
@@ -374,6 +466,7 @@ export default function App() {
     localStorage.setItem('coloc_calculs_annuels', JSON.stringify(updatedCalculs));
     showToast('Bilan annuel enregistré');
     setActiveTab('history');
+    syncToSupabase(colocataires, updatedCalculs);
   };
 
   const handleDeleteCalcul = (id: string) => {
@@ -382,6 +475,7 @@ export default function App() {
       setCalculsAnnuels(updated);
       localStorage.setItem('coloc_calculs_annuels', JSON.stringify(updated));
       showToast('Bilan supprimé');
+      syncToSupabase(colocataires, updated);
     }
   };
 
@@ -484,6 +578,11 @@ export default function App() {
         >
           <Calculator size={24} style={{ color: 'var(--primary)' }} />
           <span>Gestion Coloc</span>
+          {isSyncing && (
+            <span className="sync-indicator animate-spin" title="Synchronisation en cours..." style={{ marginLeft: '8px', display: 'inline-flex', alignItems: 'center' }}>
+              <RefreshCw size={14} style={{ color: 'var(--primary)' }} />
+            </span>
+          )}
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -555,6 +654,7 @@ export default function App() {
             onNavigate={setActiveTab}
             expandedMonth={expandedMonth}
             setExpandedMonth={setExpandedMonth}
+            onTriggerSync={handleTriggerSync}
           />
         )}
 

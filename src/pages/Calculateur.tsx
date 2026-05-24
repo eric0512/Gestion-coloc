@@ -33,6 +33,7 @@ interface CalculateurProps {
   onNavigate: (tab: 'home' | 'colocs' | 'calculator' | 'history') => void;
   expandedMonth: number | null;
   setExpandedMonth: (month: number | null) => void;
+  onTriggerSync?: () => void;
 }
 
 export default function Calculateur({
@@ -45,7 +46,8 @@ export default function Calculateur({
   onSaveCalculation,
   onNavigate,
   expandedMonth,
-  setExpandedMonth
+  setExpandedMonth,
+  onTriggerSync
 }: CalculateurProps) {
   
   // --- État des charges détaillées ---
@@ -115,6 +117,9 @@ export default function Calculateur({
       localStorage.setItem('coloc_avances_mensuelles', JSON.stringify(updated));
       return updated;
     });
+    if (onTriggerSync) {
+      setTimeout(() => onTriggerSync(), 150);
+    }
   };
 
   const avanceMensuelle = avancesMensuelles[selectedYear] !== undefined ? avancesMensuelles[selectedYear] : 150;
@@ -159,7 +164,11 @@ export default function Calculateur({
     const total = [...chargesDetaillees.gaz, ...chargesDetaillees.electricite, ...chargesDetaillees.autres, ...chargesDetaillees.communes]
       .reduce((sum, p) => sum + p.montant, 0);
     setMontantGlobalAnnuel(total.toFixed(2));
-  }, [chargesDetaillees, setMontantGlobalAnnuel]);
+    
+    if (onTriggerSync) {
+      onTriggerSync();
+    }
+  }, [chargesDetaillees, setMontantGlobalAnnuel, onTriggerSync]);
 
   const handleCategorySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const cat = e.target.value as 'gaz' | 'electricite' | 'autres' | 'communes' | '';
