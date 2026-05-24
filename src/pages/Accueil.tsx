@@ -1,6 +1,4 @@
-import { useState, useEffect } from 'react';
-import { Home, Users, Calculator, CalendarDays, ArrowRight, Download, Upload } from 'lucide-react';
-import { supabase } from '../supabaseClient';
+import { Home, Users, Calculator, CalendarDays, ArrowRight } from 'lucide-react';
 
 interface CalculAnnuel {
   id: string;
@@ -15,41 +13,14 @@ interface AccueilProps {
   selectedYear: number;
   latestCalculation: CalculAnnuel | null;
   onNavigate: (tab: 'home' | 'colocs' | 'calculator' | 'history') => void;
-  onExportData: () => void;
-  onImportData: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export default function Accueil({
   colocatairesCount,
   selectedYear,
   latestCalculation,
-  onNavigate,
-  onExportData,
-  onImportData
+  onNavigate
 }: AccueilProps) {
-  const [utilisateurs, setUtilisateurs] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchUtilisateurs() {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('code_utilisateurs')
-          .select('*');
-        
-        if (error) throw error;
-        setUtilisateurs(data || []);
-      } catch (err: any) {
-        setError(err.message || 'Erreur de récupération');
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchUtilisateurs();
-  }, []);
-
   return (
     <div className="animate-fade-in">
       <div className="tab-header">
@@ -161,111 +132,6 @@ export default function Accueil({
           </div>
         </div>
       )}
-
-      {/* Liste des codes utilisateurs (Supabase) */}
-      <div className="card" style={{ marginTop: '16px', borderLeft: '4px solid var(--primary)' }}>
-        <div className="card-title">
-          <Users size={16} style={{ color: 'var(--primary)' }} />
-          <span>Codes Utilisateurs (Supabase)</span>
-        </div>
-        
-        {loading && (
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Chargement en cours...</p>
-        )}
-        
-        {error && (
-          <p style={{ fontSize: '13px', color: 'var(--danger)' }}>
-            ⚠️ Connexion requise : Renseignez vos identifiants Supabase dans le fichier .env
-          </p>
-        )}
-        
-        {!loading && !error && utilisateurs.length === 0 && (
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Aucun code utilisateur trouvé.</p>
-        )}
-        
-        {!loading && utilisateurs.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
-            {utilisateurs.map((u, idx) => (
-              <div 
-                key={u.id || idx} 
-                style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  padding: '10px 12px', 
-                  backgroundColor: 'var(--input-bg)', 
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '13px'
-                }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {u.nom || u.username || u.code || `Utilisateur #${idx + 1}`}
-                  </span>
-                  {u.role && (
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                      Rôle : {u.role}
-                    </span>
-                  )}
-                </div>
-                {u.code && (
-                  <span style={{ fontWeight: 'bold', color: 'var(--secondary)', backgroundColor: 'var(--primary-light)', padding: '4px 8px', borderRadius: 'var(--radius-sm)' }}>
-                    {u.code}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Module de Sauvegarde / Synchronisation */}
-      <div className="card" style={{ marginTop: '16px', borderLeft: '4px solid var(--secondary)' }}>
-        <div className="card-title">
-          <Download size={16} style={{ color: 'var(--secondary)' }} />
-          <span>Sauvegarde & Transfert (PC ⇄ Mobile)</span>
-        </div>
-        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: 1.4 }}>
-          Téléchargez une sauvegarde de vos colocataires et bilans sur votre PC, puis importez-la sur votre téléphone pour synchroniser vos données instantanément.
-        </p>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button 
-            className="btn btn-secondary" 
-            style={{ flex: 1, padding: '10px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-            onClick={onExportData}
-          >
-            <Download size={14} />
-            <span>Exporter</span>
-          </button>
-          
-          <label 
-            className="btn" 
-            style={{ 
-              flex: 1, 
-              padding: '10px 14px', 
-              fontSize: '13px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              gap: '6px', 
-              background: 'linear-gradient(135deg, var(--secondary), var(--secondary-light))', 
-              color: 'var(--text-inverse)',
-              cursor: 'pointer',
-              boxShadow: 'none'
-            }}
-          >
-            <Upload size={14} />
-            <span>Importer</span>
-            <input 
-              type="file" 
-              accept=".json" 
-              onChange={onImportData} 
-              style={{ display: 'none' }} 
-            />
-          </label>
-        </div>
-      </div>
     </div>
   );
 }

@@ -498,58 +498,6 @@ export default function App() {
       .catch(() => showToast('Erreur lors de la copie'));
   };
 
-  // --- Export des données en JSON ---
-  const handleExportData = () => {
-    const backupData = {
-      colocataires,
-      calculsAnnuels,
-      avancesMensuelles: JSON.parse(localStorage.getItem('coloc_avances_mensuelles') || '{}'),
-      chargesDetaillees: JSON.parse(localStorage.getItem('coloc_charges_detaillees') || '{}')
-    };
-    
-    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(backupData, null, 2))}`;
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', jsonString);
-    downloadAnchor.setAttribute('download', `sauvegarde_coloc_${new Date().toISOString().split('T')[0]}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-    showToast('Sauvegarde téléchargée !');
-  };
-
-  // --- Import des données depuis JSON ---
-  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const fileReader = new FileReader();
-    if (e.target.files && e.target.files[0]) {
-      fileReader.readAsText(e.target.files[0], "UTF-8");
-      fileReader.onload = (event) => {
-        try {
-          const parsedData = JSON.parse(event.target?.result as string);
-          
-          if (parsedData.colocataires) {
-            setColocataires(parsedData.colocataires);
-            localStorage.setItem('coloc_colocataires', JSON.stringify(parsedData.colocataires));
-          }
-          if (parsedData.calculsAnnuels) {
-            setCalculsAnnuels(parsedData.calculsAnnuels);
-            localStorage.setItem('coloc_calculs_annuels', JSON.stringify(parsedData.calculsAnnuels));
-          }
-          if (parsedData.avancesMensuelles) {
-            localStorage.setItem('coloc_avances_mensuelles', JSON.stringify(parsedData.avancesMensuelles));
-          }
-          if (parsedData.chargesDetaillees) {
-            localStorage.setItem('coloc_charges_detaillees', JSON.stringify(parsedData.chargesDetaillees));
-          }
-          
-          showToast('Données importées avec succès !');
-          // Recharger pour appliquer immédiatement
-          setTimeout(() => window.location.reload(), 800);
-        } catch (error) {
-          showToast('Erreur : Fichier de sauvegarde invalide');
-        }
-      };
-    }
-  };
 
   return (
     <div className={`phone-container ${layoutMode === 'fullscreen' ? 'fullscreen-layout' : ''}`}>
@@ -614,8 +562,6 @@ export default function App() {
             selectedYear={selectedYear}
             latestCalculation={calculsAnnuels.length > 0 ? calculsAnnuels[0] : null}
             onNavigate={setActiveTab}
-            onExportData={handleExportData}
-            onImportData={handleImportData}
           />
         )}
 
