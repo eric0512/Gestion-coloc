@@ -855,3 +855,18 @@ body {
   to { transform: scale(1); opacity: 1; }
 }
 
+/* Adaptation de la couleur de l'icône de calendrier native selon le thème actif */
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.7;
+}
+
+
