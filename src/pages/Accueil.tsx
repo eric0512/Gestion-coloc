@@ -28,16 +28,6 @@ export default function Accueil({
         <span>Accueil</span>
       </div>
 
-      {/* Carte de bienvenue */}
-      <div className="card" style={{ background: 'linear-gradient(135deg, var(--primary-light), transparent)', borderLeft: '4px solid var(--primary)', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--primary)', marginBottom: '8px' }}>
-          Bonjour ! 🏠
-        </h2>
-        <p style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--text-primary)' }}>
-          Bienvenue dans votre outil de gestion colocative. Gestion Coloc vous permet de répartir vos frais annuels de manière 100% équitable au prorata journalier.
-        </p>
-      </div>
-
       {/* ========================================================
           LES DEUX BOUTONS MAJEURS DEMANDÉS PAR L'UTILISATEUR
          ======================================================== */}
