@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, Users, Calculator, CalendarDays, ArrowRight } from 'lucide-react';
+import { Home, Users, Calculator, CalendarDays, ArrowRight, Download, Upload } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 interface CalculAnnuel {
@@ -15,13 +15,17 @@ interface AccueilProps {
   selectedYear: number;
   latestCalculation: CalculAnnuel | null;
   onNavigate: (tab: 'home' | 'colocs' | 'calculator' | 'history') => void;
+  onExportData: () => void;
+  onImportData: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export default function Accueil({
   colocatairesCount,
   selectedYear,
   latestCalculation,
-  onNavigate
+  onNavigate,
+  onExportData,
+  onImportData
 }: AccueilProps) {
   const [utilisateurs, setUtilisateurs] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -214,6 +218,53 @@ export default function Accueil({
             ))}
           </div>
         )}
+      </div>
+
+      {/* Module de Sauvegarde / Synchronisation */}
+      <div className="card" style={{ marginTop: '16px', borderLeft: '4px solid var(--secondary)' }}>
+        <div className="card-title">
+          <Download size={16} style={{ color: 'var(--secondary)' }} />
+          <span>Sauvegarde & Transfert (PC ⇄ Mobile)</span>
+        </div>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: 1.4 }}>
+          Téléchargez une sauvegarde de vos colocataires et bilans sur votre PC, puis importez-la sur votre téléphone pour synchroniser vos données instantanément.
+        </p>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            className="btn btn-secondary" 
+            style={{ flex: 1, padding: '10px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+            onClick={onExportData}
+          >
+            <Download size={14} />
+            <span>Exporter</span>
+          </button>
+          
+          <label 
+            className="btn" 
+            style={{ 
+              flex: 1, 
+              padding: '10px 14px', 
+              fontSize: '13px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: '6px', 
+              background: 'linear-gradient(135deg, var(--secondary), var(--secondary-light))', 
+              color: 'var(--text-inverse)',
+              cursor: 'pointer',
+              boxShadow: 'none'
+            }}
+          >
+            <Upload size={14} />
+            <span>Importer</span>
+            <input 
+              type="file" 
+              accept=".json" 
+              onChange={onImportData} 
+              style={{ display: 'none' }} 
+            />
+          </label>
+        </div>
       </div>
     </div>
   );
