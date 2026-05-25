@@ -3,6 +3,11 @@ import { Calculator, DollarSign, Users, AlertCircle, Check, ChevronUp, ChevronDo
 import type { Colocataire } from './Colocataires';
 import type { RepartitionMensuelle, CumulAnnuelColoc } from '../App';
 
+const NOMS_MOIS = [
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+];
+
 interface PeriodeCharge {
   id: string;
   dateDebut: string;
@@ -67,6 +72,52 @@ export default function Calculateur({
       communes: []
     };
   });
+
+  // --- État et logique des factures mensuelles ---
+  const [selectedInvoiceMonth, setSelectedInvoiceMonth] = useState<number | null>(null);
+
+  const getInvoicesForMonth = (m: number, year: number) => {
+    const monthStart = new Date(year, m, 1);
+    const monthEnd = new Date(year, m + 1, 0);
+    
+    const formatDateString = (d: Date) => {
+      const y = d.getFullYear();
+      const mon = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${mon}-${day}`;
+    };
+    
+    const startStr = formatDateString(monthStart);
+    const endStr = formatDateString(monthEnd);
+    
+    const results: { category: string; dateDebut: string; dateFin: string; montant: number; id: string }[] = [];
+    
+    const categories: ('gaz' | 'electricite' | 'autres' | 'communes')[] = ['gaz', 'electricite', 'autres', 'communes'];
+    const labels = {
+      gaz: '🔥 Gaz',
+      electricite: '⚡ Électricité',
+      autres: '🌐 Autres Charges',
+      communes: '🏠 Charges communes'
+    };
+    
+    categories.forEach(cat => {
+      const periods = chargesDetaillees[cat] || [];
+      periods.forEach(p => {
+        const intersects = (p.dateDebut <= endStr) && (p.dateFin >= startStr);
+        if (intersects) {
+          results.push({
+            category: labels[cat],
+            dateDebut: p.dateDebut,
+            dateFin: p.dateFin,
+            montant: p.montant,
+            id: p.id
+          });
+        }
+      });
+    });
+    
+    return results;
+  };
 
   // --- État pour l'avance mensuelle par année ---
   const [avancesMensuelles, setAvancesMensuelles] = useState<{ [year: number]: number }>(() => {
@@ -460,9 +511,36 @@ export default function Calculateur({
                       }}
                     >
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontWeight: 700, fontSize: '14px' }}>
-                          {rep.nomMois} {selectedYear}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '14px' }}>
+                            {rep.nomMois} {selectedYear}
+                          </span>
+                          {getInvoicesForMonth(rep.numeroMois, selectedYear).length > 0 && (
+                            <span 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedInvoiceMonth(rep.numeroMois);
+                              }}
+                              style={{ 
+                                backgroundColor: 'var(--danger)', 
+                                color: 'var(--text-inverse)', 
+                                padding: '2px 8px', 
+                                borderRadius: '4px', 
+                                fontSize: '10px', 
+                                fontWeight: 'bold', 
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                transition: 'transform 0.1s ease'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                              title="Voir les factures de ce mois"
+                            >
+                              {getInvoicesForMonth(rep.numeroMois, selectedYear).length} fact.
+                            </span>
+                          )}
+                        </div>
                         <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                           {monthActiveColocs.length} colocataire(s) présent(s)
                         </span>
@@ -724,6 +802,74 @@ export default function Calculateur({
                 type="button" 
                 className="btn btn-secondary" 
                 onClick={() => { setShowChargeModal(false); setSelectedCategory(''); }} 
+                style={{ width: 'auto', padding: '10px 20px', fontSize: '14px' }}
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal d'affichage des factures du mois */}
+      {selectedInvoiceMonth !== null && (
+        <div className="modal-overlay" onClick={() => setSelectedInvoiceMonth(null)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+            <div className="modal-header">
+              <div className="modal-title" style={{ color: 'var(--danger)' }}>
+                <Calculator size={18} />
+                <span style={{ marginLeft: '6px' }}>
+                  Factures - {NOMS_MOIS[selectedInvoiceMonth]} {selectedYear}
+                </span>
+              </div>
+              <button className="icon-btn" onClick={() => setSelectedInvoiceMonth(null)} aria-label="Fermer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '20px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {getInvoicesForMonth(selectedInvoiceMonth, selectedYear).map(inv => {
+                  const dateStr = inv.dateDebut === inv.dateFin 
+                    ? `le ${new Date(inv.dateDebut).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`
+                    : `du ${new Date(inv.dateDebut).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} au ${new Date(inv.dateFin).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`;
+                  
+                  return (
+                    <div 
+                      key={inv.id}
+                      style={{
+                        padding: '12px',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: 'var(--input-bg)',
+                        border: '1px solid var(--border-color)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '13px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {inv.category}
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                          {dateStr}
+                        </span>
+                      </div>
+                      <span style={{ fontWeight: 'bold', color: 'var(--danger)', fontSize: '14px' }}>
+                        {inv.montant.toFixed(2)} €
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={() => setSelectedInvoiceMonth(null)} 
                 style={{ width: 'auto', padding: '10px 20px', fontSize: '14px' }}
               >
                 Fermer
