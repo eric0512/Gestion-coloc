@@ -1,4 +1,4 @@
-import { Home, Users, Calculator, CalendarDays, ArrowRight } from 'lucide-react';
+import { Home, Users, Calculator, CalendarDays, ArrowRight, Receipt } from 'lucide-react';
 
 interface CalculAnnuel {
   id: string;
@@ -99,6 +99,43 @@ export default function Accueil({
               </span>
               <span style={{ display: 'block', fontSize: '12px', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
                 Répartir le budget annuel au prorata ({selectedYear})
+              </span>
+            </div>
+          </div>
+          <ArrowRight size={20} style={{ color: 'var(--text-inverse)' }} />
+        </button>
+
+        <button
+          onClick={() => onNavigate('calculator')}
+          className="btn"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '20px 24px',
+            borderRadius: 'var(--radius-lg)',
+            background: 'linear-gradient(135deg, #ec4899, #be185d)',
+            boxShadow: '0 8px 20px rgba(236, 72, 153, 0.25)',
+            color: 'var(--text-inverse)',
+            border: 'none',
+            cursor: 'pointer',
+            textAlign: 'left',
+            width: '100%',
+            transition: 'transform 0.2s ease'
+          }}
+          onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.98)')}
+          onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '12px', borderRadius: '50%', color: 'var(--text-inverse)' }}>
+              <Receipt size={24} />
+            </div>
+            <div>
+              <span style={{ display: 'block', fontSize: '18px', fontWeight: 700, color: 'var(--text-inverse)' }}>
+                Facturation
+              </span>
+              <span style={{ display: 'block', fontSize: '12px', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
+                Consulter le bilan de régularisation annuel
               </span>
             </div>
           </div>
