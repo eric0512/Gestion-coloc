@@ -542,16 +542,6 @@ export default function App() {
   const handlePrintRoommateBill = (colocId: string) => {
     const coloc = colocataires.find(c => c.id === colocId);
     if (!coloc || !currentResult) return;
-
-    const savedAvances = localStorage.getItem('coloc_avances_mensuelles');
-    let avancesMap: { [year: number]: number } = { 2026: 150 };
-    if (savedAvances) {
-      try {
-        avancesMap = JSON.parse(savedAvances);
-      } catch (e) {
-        // fallback
-      }
-    }
     
     // Récupérer les lignes de détails mensuels pour le colocataire
     const monthlyLines: {
