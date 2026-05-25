@@ -310,9 +310,9 @@ export default function Calculateur({
               <input 
                 type="text" 
                 className="input-field" 
-                value={`${(avanceMensuelle * 12).toFixed(2)} €`}
+                value={`${currentResult ? currentResult.cumulsAnnuels.reduce((sum, c) => sum + (c.totalAvances || 0), 0).toFixed(2) : '0.00'} €`}
                 disabled
-                style={{ color: 'var(--text-secondary)', backgroundColor: 'var(--input-bg)' }}
+                style={{ fontWeight: 'bold', color: 'var(--text-primary)', backgroundColor: 'var(--input-bg)' }}
               />
             </div>
           </div>
