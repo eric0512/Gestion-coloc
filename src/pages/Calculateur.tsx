@@ -334,6 +334,72 @@ export default function Calculateur({
         </div>
       </div>
 
+      {/* Bilan Global Récapitulatif Actuel */}
+      {currentResult && totalJoursPresenceTous > 0 && (
+        <div className="card" style={{ borderLeft: '4px solid var(--secondary)', marginBottom: '20px' }}>
+          <div className="card-title">
+            <Users size={16} style={{ color: 'var(--secondary)' }} />
+            <span>Bilan Global de Régularisation (Cumul Annuel Actuel)</span>
+          </div>
+          <p className="card-subtitle" style={{ marginBottom: '14px', lineHeight: 1.4 }}>
+            Ce bilan calcule la part réelle de chacun sur le budget total de <strong>{parseFloat(montantGlobalAnnuel || '0').toFixed(2)} €</strong> au prorata de leur présence cumulée sur l'année.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {currentResult.cumulsAnnuels.map(cumul => {
+              const solde = cumul.soldeAnnuel || 0;
+              
+              return (
+                <div 
+                  key={cumul.colocId}
+                  style={{
+                    padding: '14px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: 'var(--input-bg)',
+                    border: '1px solid var(--border-color)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)' }}>
+                      {cumul.nomComplet}
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      📅 <strong>{cumul.totalJoursPresence} jours</strong> de présence cumulée
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    <div>
+                      <span>Part due :</span>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px', fontSize: '13px' }}>
+                        {cumul.totalDu.toFixed(2)} €
+                      </div>
+                    </div>
+                    <div>
+                      <span>Avances payées :</span>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px', fontSize: '13px' }}>
+                        {(cumul.totalAvances || 0).toFixed(2)} €
+                      </div>
+                    </div>
+                    <div>
+                      <span>Solde de régul. :</span>
+                      <div style={{ 
+                        fontWeight: 700, 
+                        marginTop: '2px', 
+                        fontSize: '13px',
+                        color: solde > 0 ? 'var(--danger)' : solde < 0 ? 'var(--success)' : 'var(--text-primary)'
+                      }}>
+                        {solde > 0 ? `+${solde.toFixed(2)} € (à payer)` : solde < 0 ? `${solde.toFixed(2)} € (à rembourser)` : '0.00 €'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Détails par mois (Accordéon) */}
       <div className="card">
         <div className="card-title">
