@@ -538,6 +538,383 @@ export default function App() {
       .catch(() => showToast('Erreur lors de la copie'));
   };
 
+  // --- Génération de PDF individuel ---
+  const handlePrintRoommateBill = (colocId: string) => {
+    const coloc = colocataires.find(c => c.id === colocId);
+    if (!coloc || !currentResult) return;
+
+    const savedAvances = localStorage.getItem('coloc_avances_mensuelles');
+    let avancesMap: { [year: number]: number } = { 2026: 150 };
+    if (savedAvances) {
+      try {
+        avancesMap = JSON.parse(savedAvances);
+      } catch (e) {
+        // fallback
+      }
+    }
+    
+    // Récupérer les lignes de détails mensuels pour le colocataire
+    const monthlyLines: {
+      nomMois: string;
+      daysInMonth: number;
+      joursPresence: number;
+      loyerDu: number;
+      avanceDue: number;
+      chargeDue: number;
+      totalMensuel: number;
+    }[] = [];
+
+    let cumDuPrev = 0;
+    let cumAvancePrev = 0;
+
+    currentResult.repartitionsMensuelles.forEach(rep => {
+      const part = rep.parts.find(p => p.colocId === colocId);
+      if (part && part.joursPresence > 0) {
+        // Calcul non cumulatif (valeurs nettes du mois courant)
+        const chargeDue = Math.round((part.montantDu - cumDuPrev) * 100) / 100;
+        const avanceDue = Math.round(((part.avanceDue || 0) - cumAvancePrev) * 100) / 100;
+        
+        // Calcul du loyer proratisé au jour près
+        const loyerDu = Math.round((part.joursPresence * ((coloc.loyer || 0) / rep.daysInMonth)) * 100) / 100;
+        
+        // Total mensuel dû (Loyer + Charges Réelles)
+        const totalMensuel = Math.round((loyerDu + chargeDue) * 100) / 100;
+
+        monthlyLines.push({
+          nomMois: rep.nomMois,
+          daysInMonth: rep.daysInMonth,
+          joursPresence: part.joursPresence,
+          loyerDu,
+          avanceDue,
+          chargeDue,
+          totalMensuel
+        });
+      }
+
+      // Conserver les cumuls du mois pour la soustraction du mois suivant
+      const partForCum = rep.parts.find(p => p.colocId === colocId);
+      if (partForCum) {
+        cumDuPrev = partForCum.montantDu;
+        cumAvancePrev = partForCum.avanceDue || 0;
+      }
+    });
+
+    const totalJours = monthlyLines.reduce((sum, l) => sum + l.joursPresence, 0);
+    const totalLoyer = monthlyLines.reduce((sum, l) => sum + l.loyerDu, 0);
+    const totalAvances = monthlyLines.reduce((sum, l) => sum + l.avanceDue, 0);
+    const totalCharges = monthlyLines.reduce((sum, l) => sum + l.chargeDue, 0);
+    const totalGeneral = Math.round((totalLoyer + totalCharges) * 100) / 100;
+    const soldeRegul = Math.round((totalCharges - totalAvances) * 100) / 100;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Le bloqueur de fenêtres pop-up empêche l'ouverture du bilan PDF. Veuillez autoriser les pop-ups pour ce site.");
+      return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <title>Bilan Individuel de Régularisation - ${coloc.prenom} ${coloc.nom}</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 40px;
+            font-size: 14px;
+            line-height: 1.5;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #6366f1;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .header h1 {
+            font-size: 22px;
+            color: #6366f1;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .meta-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+          }
+          .info-block {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+          }
+          .info-block h3 {
+            margin: 0 0 10px 0;
+            color: #334155;
+            font-size: 14px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 6px;
+          }
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+          }
+          .info-row:last-child {
+            margin-bottom: 0;
+          }
+          .info-label {
+            color: #64748b;
+            font-weight: 500;
+          }
+          .info-value {
+            color: #0f172a;
+            font-weight: 600;
+          }
+          .solde-badge {
+            font-size: 16px;
+            font-weight: 700;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            margin-top: 10px;
+          }
+          .solde-rembourser {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+          }
+          .solde-payer {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+          }
+          .solde-neutre {
+            background-color: #f1f5f9;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+          }
+          th {
+            background-color: #6366f1;
+            color: #ffffff;
+            font-weight: 600;
+            text-align: left;
+            padding: 10px 12px;
+            font-size: 13px;
+            text-transform: uppercase;
+          }
+          td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #334155;
+          }
+          tr:hover td {
+            background-color: #f8fafc;
+          }
+          .total-row {
+            font-weight: 700;
+            background-color: #f1f5f9;
+          }
+          .total-row td {
+            border-bottom: 2px solid #cbd5e1;
+            border-top: 2px solid #cbd5e1;
+            color: #0f172a;
+          }
+          .signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 60px;
+            page-break-inside: avoid;
+          }
+          .sig-box {
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            height: 120px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          }
+          .sig-title {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: bold;
+            text-transform: uppercase;
+          }
+          .footer {
+            margin-top: 80px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 11px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+          }
+          .print-btn-container {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: flex-end;
+          }
+          .print-btn {
+            background-color: #6366f1;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.2s ease;
+          }
+          .print-btn:hover {
+            background-color: #4f46e5;
+          }
+          @media print {
+            .print-btn-container {
+              display: none;
+            }
+            body {
+              padding: 0;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-btn-container">
+          <button class="print-btn" onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button>
+        </div>
+
+        <div class="header">
+          <div>
+            <h1>Régularisation des Charges</h1>
+            <div style="font-size: 14px; color: #64748b; margin-top: 4px;">Gestion de Colocation - Année ${selectedYear}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-weight: bold; color: #0f172a; font-size: 16px;">Bilan Individuel</div>
+            <div style="color: #64748b; font-size: 12px; margin-top: 2px;">Date d'édition : ${new Date().toLocaleDateString('fr-FR')}</div>
+          </div>
+        </div>
+
+        <div class="meta-info">
+          <div class="info-block">
+            <h3>Colocataire</h3>
+            <div class="info-row">
+              <span class="info-label">Nom complet :</span>
+              <span class="info-value">${coloc.prenom} ${coloc.nom}</span>
+            </div>
+            ${coloc.telephone ? `
+            <div class="info-row">
+              <span class="info-label">Téléphone :</span>
+              <span class="info-value">${coloc.telephone}</span>
+            </div>
+            ` : ''}
+            <div class="info-row">
+              <span class="info-label">Date d'entrée :</span>
+              <span class="info-value">${new Date(coloc.dateEntree).toLocaleDateString('fr-FR')}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Date de sortie :</span>
+              <span class="info-value">${coloc.dateSortie ? new Date(coloc.dateSortie).toLocaleDateString('fr-FR') : 'Présent'}</span>
+            </div>
+          </div>
+
+          <div class="info-block" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3>Bilan Financier Global</h3>
+              <div class="info-row">
+                <span class="info-label">Présence cumulée :</span>
+                <span class="info-value">${totalJours} jours</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Charges réelles dues :</span>
+                <span class="info-value">${totalCharges.toFixed(2)} €</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Avances versées :</span>
+                <span class="info-value">${totalAvances.toFixed(2)} €</span>
+              </div>
+            </div>
+            
+            <div class="solde-badge ${soldeRegul > 0 ? 'solde-payer' : soldeRegul < 0 ? 'solde-rembourser' : 'solde-neutre'}">
+              ${soldeRegul > 0 
+                ? `Reste à payer : +${soldeRegul.toFixed(2)} €` 
+                : soldeRegul < 0 
+                  ? `Trop-perçu à rembourser : ${Math.abs(soldeRegul).toFixed(2)} €` 
+                  : 'Solde équilibré : 0.00 €'}
+            </div>
+          </div>
+        </div>
+
+        <h3 style="color: #334155; font-size: 15px; margin-bottom: 12px; text-transform: uppercase;">Détails mensuels de l'année ${selectedYear}</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Mois</th>
+              <th style="text-align: center;">Présence</th>
+              <th style="text-align: right;">Loyer dû</th>
+              <th style="text-align: right;">Avance charges</th>
+              <th style="text-align: right;">Charges réelles</th>
+              <th style="text-align: right;">Total mensuel (Dû)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${monthlyLines.map(line => `
+              <tr>
+                <td style="font-weight: 600; color: #0f172a;">${line.nomMois} ${selectedYear}</td>
+                <td style="text-align: center;">${line.joursPresence} j / ${line.daysInMonth}</td>
+                <td style="text-align: right; font-weight: 500;">${line.loyerDu.toFixed(2)} €</td>
+                <td style="text-align: right; color: #475569;">${line.avanceDue.toFixed(2)} €</td>
+                <td style="text-align: right; color: #475569;">${line.chargeDue.toFixed(2)} €</td>
+                <td style="text-align: right; font-weight: 600; color: #6366f1;">${line.totalMensuel.toFixed(2)} €</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td>TOTAL CUMULÉ</td>
+              <td style="text-align: center;">-</td>
+              <td style="text-align: right;">${totalLoyer.toFixed(2)} €</td>
+              <td style="text-align: right; font-weight: normal; color: #475569;">${totalAvances.toFixed(2)} €</td>
+              <td style="text-align: right; font-weight: normal; color: #475569;">${totalCharges.toFixed(2)} €</td>
+              <td style="text-align: right; color: #6366f1;">${totalGeneral.toFixed(2)} €</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="signatures">
+          <div class="sig-box">
+            <span class="sig-title">Signature du Colocataire</span>
+            <div style="font-size: 11px; color: #94a3b8;">Bon pour accord</div>
+          </div>
+          <div class="sig-box">
+            <span class="sig-title">Signature du Mandataire</span>
+            <div style="font-size: 11px; color: #94a3b8;">Gestion Coloc</div>
+          </div>
+        </div>
+
+        <div class="footer">
+          Bilan de régularisation individuel généré par l'application Gestion Coloc - Merci de votre confiance.
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
 
   return (
     <div className={`phone-container ${layoutMode === 'fullscreen' ? 'fullscreen-layout' : ''}`}>
@@ -710,6 +1087,9 @@ export default function App() {
                 <>
                   <p className="card-subtitle" style={{ marginBottom: '14px', lineHeight: 1.4, color: 'var(--text-secondary)', fontSize: '13px' }}>
                     Ce bilan calcule la part réelle de chacun sur le budget total de <strong>{parseFloat(montantGlobalAnnuel || '0').toFixed(2)} €</strong> au prorata de leur présence cumulée sur l'année.
+                    <span style={{ display: 'block', marginTop: '6px', color: 'var(--primary)', fontWeight: 600 }}>
+                      💡 Cliquez sur un colocataire ci-dessous pour générer son reçu PDF individuel détaillé (loyer et charges).
+                    </span>
                   </p>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -719,11 +1099,25 @@ export default function App() {
                       return (
                         <div 
                           key={cumul.colocId}
+                          onClick={() => handlePrintRoommateBill(cumul.colocId)}
+                          title="Cliquez pour générer et imprimer le bilan PDF de ce colocataire"
                           style={{
                             padding: '14px',
                             borderRadius: 'var(--radius-md)',
                             backgroundColor: 'var(--input-bg)',
                             border: '1px solid var(--border-color)',
+                            cursor: 'pointer',
+                            transition: 'transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.borderColor = 'var(--primary)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.15)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.borderColor = 'var(--border-color)';
+                            e.currentTarget.style.boxShadow = 'none';
                           }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
