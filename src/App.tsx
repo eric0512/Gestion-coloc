@@ -280,6 +280,10 @@ export default function App() {
       cumulsColocsMap[c.id] = { totalDu: 0, totalJours: 0, totalAvances: 0, nomComplet: `${c.prenom} ${c.nom}` };
     });
 
+    // Cartes pour suivre la progression cumulée mois par mois
+    const runningCharges: { [id: string]: number } = {};
+    const runningAvances: { [id: string]: number } = {};
+
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth(); // 0-11
@@ -334,45 +338,61 @@ export default function App() {
 
       const tauxJournalier = totalJoursColocs > 0 ? monthlyAmount / totalJoursColocs : 0;
 
-      const finalParts = parts.map(part => {
+      // 1. Calculer d'abord les valeurs mensuelles réelles de ce mois
+      const monthlyValues = parts.map(part => {
         const rawMontant = part.joursPresence * tauxJournalier;
         const montantDu = Math.round(rawMontant * 100) / 100;
-        
         const avanceDue = part.avanceDue || 0;
-        const solde = Math.round((montantDu - avanceDue) * 100) / 100;
-
-        if (cumulsColocsMap[part.colocId]) {
-          cumulsColocsMap[part.colocId].totalDu += montantDu;
-          cumulsColocsMap[part.colocId].totalJours += part.joursPresence;
-          cumulsColocsMap[part.colocId].totalAvances += avanceDue;
-        }
 
         return {
-          ...part,
+          colocId: part.colocId,
           montantDu,
-          solde
+          avanceDue
         };
       });
 
-      const totalCalculeMois = finalParts.reduce((sum, p) => sum + p.montantDu, 0);
+      // 2. Calculer le total mensuel calculé et l'écart d'arrondi
+      const totalCalculeMois = monthlyValues.reduce((sum, p) => sum + p.montantDu, 0);
       const ecartMois = monthlyAmount - totalCalculeMois;
 
-      if (Math.abs(ecartMois) > 0 && Math.abs(ecartMois) < 1 && finalParts.length > 0) {
-        const indexMax = finalParts.reduce(
+      // 3. Ajuster l'écart d'arrondi sur la personne ayant le plus de présence ce mois-ci
+      if (Math.abs(ecartMois) > 0 && Math.abs(ecartMois) < 1 && monthlyValues.length > 0) {
+        const indexMax = parts.reduce(
           (maxIdx, part, idx, arr) => (part.joursPresence > arr[maxIdx].joursPresence ? idx : maxIdx),
           0
         );
-        if (finalParts[indexMax] && finalParts[indexMax].joursPresence > 0) {
-          const partAjustee = finalParts[indexMax];
-          const ancienMontant = partAjustee.montantDu;
-          partAjustee.montantDu = Math.round((ancienMontant + ecartMois) * 100) / 100;
-          partAjustee.solde = Math.round((partAjustee.montantDu - (partAjustee.avanceDue || 0)) * 100) / 100;
-
-          if (cumulsColocsMap[partAjustee.colocId]) {
-            cumulsColocsMap[partAjustee.colocId].totalDu += (partAjustee.montantDu - ancienMontant);
+        if (parts[indexMax] && parts[indexMax].joursPresence > 0) {
+          const colocIdAjuste = parts[indexMax].colocId;
+          const matchVal = monthlyValues.find(v => v.colocId === colocIdAjuste);
+          if (matchVal) {
+            matchVal.montantDu = Math.round((matchVal.montantDu + ecartMois) * 100) / 100;
           }
         }
       }
+
+      // 4. Mettre à jour les cumuls annuels finaux et les progressions mensuelles cumulées
+      const finalParts = parts.map(part => {
+        const monthlyVal = monthlyValues.find(v => v.colocId === part.colocId) || { montantDu: 0, avanceDue: 0 };
+        const montantDuMensuel = monthlyVal.montantDu;
+        const avanceDueMensuelle = monthlyVal.avanceDue;
+
+        if (cumulsColocsMap[part.colocId]) {
+          cumulsColocsMap[part.colocId].totalDu += montantDuMensuel;
+          cumulsColocsMap[part.colocId].totalJours += part.joursPresence;
+          cumulsColocsMap[part.colocId].totalAvances += avanceDueMensuelle;
+        }
+
+        // Ajouter au cumul de progression mensuelle
+        runningCharges[part.colocId] = (runningCharges[part.colocId] || 0) + montantDuMensuel;
+        runningAvances[part.colocId] = (runningAvances[part.colocId] || 0) + avanceDueMensuelle;
+
+        return {
+          ...part,
+          montantDu: Math.round(runningCharges[part.colocId] * 100) / 100,
+          avanceDue: Math.round(runningAvances[part.colocId] * 100) / 100,
+          solde: Math.round((runningCharges[part.colocId] - runningAvances[part.colocId]) * 100) / 100
+        };
+      });
 
       repartitionsMensuelles.push({
         numeroMois: m,
