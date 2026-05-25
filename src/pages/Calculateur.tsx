@@ -119,61 +119,9 @@ export default function Calculateur({
     return results;
   };
 
-  // --- État pour l'avance mensuelle par année ---
-  const [avancesMensuelles, setAvancesMensuelles] = useState<{ [year: number]: number }>(() => {
-    const saved = localStorage.getItem('coloc_avances_mensuelles');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // fallback
-      }
-    }
-    return { 2026: 150 }; // valeur par défaut initiale
-  });
-
-  // --- Effet pour initialiser/reconduire l'avance mensuelle sur les nouvelles années ---
-  useEffect(() => {
-    setAvancesMensuelles(prev => {
-      if (prev[selectedYear] !== undefined) return prev;
-      
-      const yearsWithValues = Object.keys(prev)
-        .map(Number)
-        .filter(y => y < selectedYear)
-        .sort((a, b) => b - a);
-
-      let carryOverValue = 150;
-      if (yearsWithValues.length > 0) {
-        carryOverValue = prev[yearsWithValues[0]];
-      } else {
-        const allYears = Object.keys(prev).map(Number).sort((a, b) => a - b);
-        if (allYears.length > 0) {
-          carryOverValue = prev[allYears[0]];
-        }
-      }
-
-      const updated = { ...prev, [selectedYear]: carryOverValue };
-      localStorage.setItem('coloc_avances_mensuelles', JSON.stringify(updated));
-      return updated;
-    });
-  }, [selectedYear]);
-
   const handleYearChange = (newYear: number) => {
     setSelectedYear(newYear);
   };
-
-  const handleAvanceChange = (value: number) => {
-    setAvancesMensuelles(prev => {
-      const updated = { ...prev, [selectedYear]: value };
-      localStorage.setItem('coloc_avances_mensuelles', JSON.stringify(updated));
-      return updated;
-    });
-    if (onTriggerSync) {
-      setTimeout(() => onTriggerSync(), 150);
-    }
-  };
-
-  const avanceMensuelle = avancesMensuelles[selectedYear] !== undefined ? avancesMensuelles[selectedYear] : 150;
 
   // --- États Modals ---
   const [showChargeModal, setShowChargeModal] = useState(false);
@@ -338,20 +286,6 @@ export default function Calculateur({
             </select>
           </div>
 
-          {/* Montant de l'avance mensuelle (€) */}
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label" style={{ minHeight: '38px', display: 'flex', alignItems: 'flex-end' }}>Montant de l'avance mensuelle (€)</label>
-            <input 
-              type="number" 
-              className="input-field" 
-              value={avanceMensuelle || ''}
-              onChange={(e) => handleAvanceChange(parseFloat(e.target.value) || 0)}
-              placeholder="Ex: 150.00"
-              min="0"
-              step="0.01"
-            />
-          </div>
-
           {/* Charges annuelles */}
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label" style={{ minHeight: '38px', display: 'flex', alignItems: 'flex-end' }}>Charges annuelles</label>
@@ -361,18 +295,6 @@ export default function Calculateur({
               value={`${parseFloat(montantGlobalAnnuel || '0').toFixed(2)} €`}
               disabled
               style={{ fontWeight: 'bold', color: 'var(--primary)', backgroundColor: 'var(--input-bg)' }}
-            />
-          </div>
-
-          {/* Avances annuelles cumulées */}
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label" style={{ minHeight: '38px', display: 'flex', alignItems: 'flex-end' }}>Avances annuelles cumulées</label>
-            <input 
-              type="text" 
-              className="input-field" 
-              value={`${currentResult ? currentResult.cumulsAnnuels.reduce((sum, c) => sum + (c.totalAvances || 0), 0).toFixed(2) : '0.00'} €`}
-              disabled
-              style={{ fontWeight: 'bold', color: 'var(--text-primary)', backgroundColor: 'var(--input-bg)' }}
             />
           </div>
         </div>

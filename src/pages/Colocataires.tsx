@@ -33,30 +33,8 @@ export default function Colocataires({
   const [formDateSortie, setFormDateSortie] = useState('');
   const [formTelephone, setFormTelephone] = useState('');
   const [formLoyer, setFormLoyer] = useState('');
+  const [formAvanceCharge, setFormAvanceCharge] = useState('');
   const [colocFormError, setColocFormError] = useState('');
-
-  // Récupérer le montant de l'avance mensuelle définie dans le localStorage (définie dans le Calculateur)
-  const getDefinedAdvance = () => {
-    const saved = localStorage.getItem('coloc_avances_mensuelles');
-    if (saved) {
-      try {
-        const map = JSON.parse(saved);
-        const currentYear = new Date().getFullYear();
-        if (map[currentYear] !== undefined) {
-          return map[currentYear];
-        }
-        const keys = Object.keys(map).map(Number);
-        if (keys.length > 0) {
-          return map[keys[0]];
-        }
-      } catch (e) {
-        // fallback
-      }
-    }
-    return 150;
-  };
-
-  const avanceChargeDefinie = getDefinedAdvance();
 
   // --- États Modals ---
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -106,7 +84,7 @@ export default function Colocataires({
       dateSortie: formDateSortie || null,
       telephone: formTelephone.trim(),
       loyer: parseFloat(formLoyer) || 0,
-      avanceCharge: avanceChargeDefinie
+      avanceCharge: parseFloat(formAvanceCharge) || 0
     };
 
     if (editingColocId) {
@@ -126,6 +104,7 @@ export default function Colocataires({
     setFormDateSortie(coloc.dateSortie || '');
     setFormTelephone(coloc.telephone || '');
     setFormLoyer(coloc.loyer !== undefined ? String(coloc.loyer) : '');
+    setFormAvanceCharge(coloc.avanceCharge !== undefined ? String(coloc.avanceCharge) : '');
     setColocFormError('');
   };
 
@@ -142,6 +121,7 @@ export default function Colocataires({
     setFormDateSortie('');
     setFormTelephone('');
     setFormLoyer('');
+    setFormAvanceCharge('');
     setColocFormError('');
   };
 
@@ -284,17 +264,15 @@ export default function Colocataires({
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Avance de charges (€)</label>
+              <label className="form-label">Avance de charges (€) *</label>
               <input 
-                type="text" 
+                type="number" 
+                step="any"
                 className="input-field" 
-                value={`${avanceChargeDefinie.toFixed(2)} €`}
-                disabled
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  cursor: 'not-allowed',
-                  opacity: 0.8
-                }}
+                value={formAvanceCharge}
+                onChange={(e) => setFormAvanceCharge(e.target.value)}
+                placeholder="Ex: 150"
+                required
               />
             </div>
           </div>

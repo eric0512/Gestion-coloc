@@ -254,18 +254,6 @@ export default function App() {
     const annualAmount = parseFloat(montantGlobalAnnuel) || 0;
     const monthlyAmount = annualAmount / 12;
 
-    // Charger l'avance mensuelle paramétrée pour l'année
-    const savedAvances = localStorage.getItem('coloc_avances_mensuelles');
-    let avancesMap: { [year: number]: number } = { 2026: 150 };
-    if (savedAvances) {
-      try {
-        avancesMap = JSON.parse(savedAvances);
-      } catch (e) {
-        // fallback
-      }
-    }
-    const currentAvanceMensuelle = avancesMap[selectedYear] !== undefined ? avancesMap[selectedYear] : 150;
-
     const formatDateString = (d: Date) => {
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -329,7 +317,7 @@ export default function App() {
           nomComplet: `${coloc.prenom} ${coloc.nom}`,
           joursPresence: activeDaysInMonth,
           montantDu: 0,
-          avanceDue: Math.round((activeDaysInMonth * (currentAvanceMensuelle / daysInMonth)) * 100) / 100,
+          avanceDue: Math.round((activeDaysInMonth * ((coloc.avanceCharge !== undefined ? coloc.avanceCharge : 150) / daysInMonth)) * 100) / 100,
           solde: 0
         });
 
