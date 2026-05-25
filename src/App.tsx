@@ -538,10 +538,65 @@ export default function App() {
       .catch(() => showToast('Erreur lors de la copie'));
   };
 
+  // --- Obtenir les cumuls de régularisation arrêtés au mois précédent ---
+  const getRoommateCumulativeData = (colocId: string) => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11
+
+    let totalDu = 0;
+    let totalAvances = 0;
+    let soldeAnnuel = 0;
+    let totalJoursPresence = 0;
+
+    if (!currentResult) {
+      return { totalDu, totalAvances, soldeAnnuel, totalJoursPresence };
+    }
+
+    if (selectedYear === currentYear) {
+      // Régularisation arrêtée au mois précédent l'édition du PDF (currentMonth - 1)
+      const targetMonthIndex = currentMonth - 1;
+      
+      if (targetMonthIndex >= 0 && targetMonthIndex < currentResult.repartitionsMensuelles.length) {
+        const rep = currentResult.repartitionsMensuelles[targetMonthIndex];
+        const part = rep.parts.find(p => p.colocId === colocId);
+        if (part) {
+          totalDu = part.montantDu;
+          totalAvances = part.avanceDue || 0;
+          soldeAnnuel = part.solde || 0;
+        }
+      }
+
+      // Somme des jours de présence uniquement jusqu'au mois précédent
+      for (let m = 0; m <= targetMonthIndex; m++) {
+        const rep = currentResult.repartitionsMensuelles[m];
+        const part = rep.parts.find(p => p.colocId === colocId);
+        if (part) {
+          totalJoursPresence += part.joursPresence;
+        }
+      }
+    } else if (selectedYear < currentYear) {
+      // Année passée : bilan annuel complet
+      const cumul = currentResult.cumulsAnnuels.find(c => c.colocId === colocId);
+      if (cumul) {
+        totalDu = cumul.totalDu;
+        totalAvances = cumul.totalAvances || 0;
+        soldeAnnuel = cumul.soldeAnnuel || 0;
+        totalJoursPresence = cumul.totalJoursPresence;
+      }
+    }
+
+    return { totalDu, totalAvances, soldeAnnuel, totalJoursPresence };
+  };
+
   // --- Génération de PDF individuel ---
   const handlePrintRoommateBill = (colocId: string) => {
     const coloc = colocataires.find(c => c.id === colocId);
     if (!coloc || !currentResult) return;
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11
     
     // Récupérer les lignes de détails mensuels pour le colocataire
     const monthlyLines: {
@@ -558,6 +613,11 @@ export default function App() {
     let cumAvancePrev = 0;
 
     currentResult.repartitionsMensuelles.forEach(rep => {
+      // Filtrer pour ne garder que les mois strictement antérieurs au mois actuel si c'est l'année en cours
+      if (selectedYear === currentYear && rep.numeroMois >= currentMonth) {
+        return;
+      }
+
       const part = rep.parts.find(p => p.colocId === colocId);
       if (part && part.joursPresence > 0) {
         // Calcul non cumulatif (valeurs nettes du mois courant)
@@ -1076,7 +1136,7 @@ export default function App() {
               ) : (
                 <>
                   <p className="card-subtitle" style={{ marginBottom: '14px', lineHeight: 1.4, color: 'var(--text-secondary)', fontSize: '13px' }}>
-                    Ce bilan calcule la part réelle de chacun sur le budget total de <strong>{parseFloat(montantGlobalAnnuel || '0').toFixed(2)} €</strong> au prorata de leur présence cumulée sur l'année.
+                    Ce bilan calcule la part réelle de chacun sur le budget au prorata de leur présence cumulée sur la période (régularisation arrêtée au mois précédent).
                     <span style={{ display: 'block', marginTop: '6px', color: 'var(--primary)', fontWeight: 600 }}>
                       💡 Cliquez sur un colocataire ci-dessous pour générer son reçu PDF individuel détaillé (loyer et charges).
                     </span>
@@ -1084,7 +1144,9 @@ export default function App() {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {currentResult.cumulsAnnuels.map(cumul => {
-                      const solde = cumul.soldeAnnuel || 0;
+                      // Obtenir les cumuls arrêtés au mois précédent
+                      const data = getRoommateCumulativeData(cumul.colocId);
+                      const solde = data.soldeAnnuel;
                       
                       return (
                         <div 
@@ -1115,7 +1177,7 @@ export default function App() {
                               {cumul.nomComplet}
                             </span>
                             <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                              📅 <strong>{cumul.totalJoursPresence} jours</strong> de présence cumulée
+                              📅 <strong>{data.totalJoursPresence} jours</strong> de présence cumulée
                             </span>
                           </div>
 
@@ -1123,13 +1185,13 @@ export default function App() {
                             <div>
                               <span>Part due :</span>
                               <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px', fontSize: '13px' }}>
-                                {cumul.totalDu.toFixed(2)} €
+                                {data.totalDu.toFixed(2)} €
                               </div>
                             </div>
                             <div>
                               <span>Avances payées :</span>
                               <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px', fontSize: '13px' }}>
-                                {(cumul.totalAvances || 0).toFixed(2)} €
+                                {data.totalAvances.toFixed(2)} €
                               </div>
                             </div>
                             <div>
