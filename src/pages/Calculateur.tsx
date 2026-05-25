@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calculator, DollarSign, Users, AlertCircle, Check, ChevronUp, ChevronDown, Flame, Zap, Wifi, Trash2, X, Home } from 'lucide-react';
-import type { Colocataire } from './Colocataires';
+import { Calculator, DollarSign, AlertCircle, Check, Flame, Zap, Wifi, Trash2, X, Home } from 'lucide-react';
 import type { RepartitionMensuelle, CumulAnnuelColoc } from '../App';
 
 const NOMS_MOIS = [
@@ -23,7 +22,6 @@ interface ChargesDetaillees {
 }
 
 interface CalculateurProps {
-  colocataires: Colocataire[];
   selectedYear: number;
   setSelectedYear: (year: number) => void;
   montantGlobalAnnuel: string;
@@ -36,13 +34,10 @@ interface CalculateurProps {
   } | null;
   onSaveCalculation: () => void;
   onNavigate: (tab: 'home' | 'colocs' | 'calculator' | 'history') => void;
-  expandedMonth: number | null;
-  setExpandedMonth: (month: number | null) => void;
   onTriggerSync?: () => void;
 }
 
 export default function Calculateur({
-  colocataires,
   selectedYear,
   setSelectedYear,
   montantGlobalAnnuel,
@@ -50,8 +45,6 @@ export default function Calculateur({
   currentResult,
   onSaveCalculation,
   onNavigate,
-  expandedMonth,
-  setExpandedMonth,
   onTriggerSync
 }: CalculateurProps) {
   
@@ -72,9 +65,6 @@ export default function Calculateur({
       communes: []
     };
   });
-
-  // --- État pour afficher/masquer la répartition mensuelle détaillée ---
-  const [showMonthlyDetails, setShowMonthlyDetails] = useState(false);
 
   // --- État et logique des factures mensuelles ---
   const [selectedInvoiceMonth, setSelectedInvoiceMonth] = useState<number | null>(null);
@@ -401,211 +391,16 @@ export default function Calculateur({
             <option value="communes">🏠 Charges communes</option>
           </select>
         </div>
-      </div>
 
-
-
-      {/* Détails par mois (Collapsible/Accordéon) */}
-      <div className="card" style={{ marginBottom: '20px' }}>
-        <button
-          onClick={() => setShowMonthlyDetails(!showMonthlyDetails)}
-          style={{
-            width: '100%',
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            color: 'var(--text-primary)',
-            cursor: 'pointer',
-            textAlign: 'left'
-          }}
-        >
-          <div className="card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calculator size={16} style={{ color: 'var(--text-secondary)' }} />
-            <span style={{ fontSize: '15px', fontWeight: 600 }}>Répartition mensuelle détaillée</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
-            <span style={{ fontSize: '12px', fontWeight: 500 }}>
-              {showMonthlyDetails ? 'Masquer' : 'Afficher'}
-            </span>
-            {showMonthlyDetails ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </div>
-        </button>
-        
-        {showMonthlyDetails && (
-          <div style={{ marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-            {colocataires.length === 0 ? (
-              <div className="empty-state" style={{ padding: '8px 0' }}>
-                <Users size={32} className="empty-icon" />
-                <p className="empty-text">Veuillez d'abord enregistrer des colocataires.</p>
-                <button className="btn btn-primary" style={{ marginTop: '12px', fontSize: '13px' }} onClick={() => onNavigate('colocs')}>
-                  Gérer les colocataires
-                </button>
-              </div>
-            ) : currentResult && totalJoursPresenceTous === 0 ? (
-              <div className="empty-state" style={{ padding: '8px 0', color: 'var(--danger)' }}>
-                <AlertCircle size={32} className="empty-icon" style={{ color: 'var(--danger)' }} />
-                <p className="empty-text">Aucun colocataire présent pour l'année {selectedYear}.</p>
-                <button className="btn btn-secondary" style={{ marginTop: '12px', fontSize: '13px' }} onClick={() => onNavigate('colocs')}>
-                  Ajuster les dates de présence
-                </button>
-              </div>
-            ) : (
-              <>
-                <p className="card-subtitle" style={{ marginBottom: '12px' }}>
-                  Cliquez sur un mois pour inspecter les jours-présence et le coût journalier.
-                </p>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {currentResult && currentResult.repartitionsMensuelles.map((rep) => {
-                    const isExpanded = expandedMonth === rep.numeroMois;
-                    const monthActiveColocs = rep.parts.filter(p => p.joursPresence > 0);
-                    
-                    return (
-                      <div 
-                        key={rep.numeroMois} 
-                        style={{ 
-                          borderRadius: 'var(--radius-md)', 
-                          border: '1px solid var(--border-color)',
-                          backgroundColor: 'var(--input-bg)',
-                          overflow: 'hidden'
-                        }}
-                      >
-                        <button
-                          onClick={() => setExpandedMonth(isExpanded ? null : rep.numeroMois)}
-                          style={{
-                            width: '100%',
-                            padding: '12px 16px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--text-primary)',
-                            cursor: 'pointer',
-                            textAlign: 'left'
-                          }}
-                        >
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontWeight: 700, fontSize: '14px' }}>
-                                {rep.nomMois} {selectedYear}
-                              </span>
-                              {getInvoicesForMonth(rep.numeroMois, selectedYear).length > 0 && (
-                                <span 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedInvoiceMonth(rep.numeroMois);
-                                  }}
-                                  style={{ 
-                                    backgroundColor: 'var(--danger)', 
-                                    color: 'var(--text-inverse)', 
-                                    padding: '2px 8px', 
-                                    borderRadius: '4px', 
-                                    fontSize: '10px', 
-                                    fontWeight: 'bold', 
-                                    cursor: 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    transition: 'transform 0.1s ease'
-                                  }}
-                                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                  title="Voir les factures de ce mois"
-                                >
-                                  {getInvoicesForMonth(rep.numeroMois, selectedYear).length} fact.
-                                </span>
-                              )}
-                            </div>
-                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                              {monthActiveColocs.length} colocataire(s) présent(s)
-                            </span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </div>
-                        </button>
-
-                        {isExpanded && (
-                          <div style={{ 
-                            padding: '12px 16px', 
-                            borderTop: '1px solid var(--border-color)',
-                            backgroundColor: 'var(--bg-phone)'
-                          }}>
-                            {rep.totalJoursColocs === 0 ? (
-                              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center', padding: '8px 0' }}>
-                                Aucun colocataire actif pour ce mois de {rep.nomMois}.
-                              </p>
-                            ) : (
-                              <div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
-                                  <span>Total jours-colocs : {rep.totalJoursColocs}j</span>
-                                  <span>Journalier : {rep.tauxJournalier.toFixed(2)} € / jour</span>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                  {rep.parts.map(part => {
-                                    const isPresent = part.joursPresence > 0;
-                                    return (
-                                      <div 
-                                        key={part.colocId} 
-                                        style={{ 
-                                          display: 'flex', 
-                                          flexDirection: 'column',
-                                          gap: '4px',
-                                          padding: '10px 0',
-                                          borderBottom: '1px dashed var(--border-color)',
-                                          opacity: isPresent ? 1 : 0.4
-                                        }}
-                                      >
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                          <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>{part.nomComplet}</span>
-                                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                                            {part.joursPresence} jours / {rep.daysInMonth} présents
-                                          </span>
-                                        </div>
-                                        
-                                        {isPresent && (
-                                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                            <span>Charge : <strong style={{ color: 'var(--text-primary)' }}>{part.montantDu.toFixed(2)} €</strong></span>
-                                            <span>Avance : <strong style={{ color: 'var(--text-primary)' }}>{(part.avanceDue || 0).toFixed(2)} €</strong></span>
-                                            <span>
-                                              Solde :{' '}
-                                              <strong style={{ 
-                                                color: (part.solde || 0) > 0 ? 'var(--danger)' : (part.solde || 0) < 0 ? 'var(--success)' : 'var(--text-primary)' 
-                                              }}>
-                                                {(part.solde || 0) > 0 ? '+' : ''}{(part.solde || 0).toFixed(2)} €
-                                              </strong>
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {currentResult && totalJoursPresenceTous > 0 && (
-                  <button 
-                    className="btn btn-primary" 
-                    style={{ marginTop: '20px', width: '100%' }}
-                    onClick={onSaveCalculation}
-                  >
-                    <Check size={18} />
-                    <span>Enregistrer ce bilan annuel</span>
-                  </button>
-                )}
-              </>
-            )}
-          </div>
+        {currentResult && totalJoursPresenceTous > 0 && (
+          <button 
+            className="btn btn-primary" 
+            style={{ marginTop: '20px', width: '100%' }}
+            onClick={onSaveCalculation}
+          >
+            <Check size={18} />
+            <span>Enregistrer ce bilan annuel</span>
+          </button>
         )}
       </div>
 

@@ -105,9 +105,6 @@ export default function App() {
   const [hasLoadedFromSupabase, setHasLoadedFromSupabase] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-  // --- Accordéon de détails mensuels ---
-  const [expandedMonth, setExpandedMonth] = useState<number | null>(4); // Mai ouvert par défaut
-
   // --- États Saisie des Charges Annuelles ---
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [montantGlobalAnnuel, setMontantGlobalAnnuel] = useState<string>('7200'); // 7200 € / an par défaut
@@ -1044,7 +1041,6 @@ export default function App() {
 
         {activeTab === 'calculator' && (
           <Calculateur 
-            colocataires={colocataires}
             selectedYear={selectedYear}
             setSelectedYear={setSelectedYear}
             montantGlobalAnnuel={montantGlobalAnnuel}
@@ -1054,8 +1050,6 @@ export default function App() {
             currentResult={currentResult}
             onSaveCalculation={handleSaveCalculation}
             onNavigate={setActiveTab}
-            expandedMonth={expandedMonth}
-            setExpandedMonth={setExpandedMonth}
             onTriggerSync={handleTriggerSync}
           />
         )}
