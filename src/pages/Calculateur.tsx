@@ -90,20 +90,35 @@ export default function Calculateur({
     categories.forEach(cat => {
       const periods = chargesDetaillees[cat] || [];
       periods.forEach(p => {
-        if (p.dateDebut) {
-          const invoiceStart = new Date(p.dateDebut);
-          const invoiceYear = invoiceStart.getFullYear();
-          const invoiceMonth = invoiceStart.getMonth(); // 0-11
-          
-          if (invoiceYear === year && invoiceMonth === m) {
-            results.push({
-              category: labels[cat],
-              dateDebut: p.dateDebut,
-              dateFin: p.dateFin,
-              montant: p.montant,
-              id: p.id
-            });
+        let invoiceMonth = -1;
+        let invoiceYear = -1;
+        
+        // Extrait le timestamp de l'id (ex: 'period-1779669600000') pour savoir quand la saisie a été faite
+        if (p.id && p.id.startsWith('period-')) {
+          const tsStr = p.id.split('-')[1];
+          const ts = parseInt(tsStr);
+          if (!isNaN(ts)) {
+            const entryDate = new Date(ts);
+            invoiceMonth = entryDate.getMonth(); // 0-11
+            invoiceYear = entryDate.getFullYear();
           }
+        }
+        
+        // Fallback sur dateDebut si l'id n'a pas de timestamp ou est invalide
+        if ((invoiceMonth === -1 || invoiceYear === -1) && p.dateDebut) {
+          const invoiceStart = new Date(p.dateDebut);
+          invoiceMonth = invoiceStart.getMonth();
+          invoiceYear = invoiceStart.getFullYear();
+        }
+        
+        if (invoiceYear === year && invoiceMonth === m) {
+          results.push({
+            category: labels[cat],
+            dateDebut: p.dateDebut,
+            dateFin: p.dateFin,
+            montant: p.montant,
+            id: p.id
+          });
         }
       });
     });
