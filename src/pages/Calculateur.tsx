@@ -235,6 +235,34 @@ export default function Calculateur({
     ? currentResult.cumulsAnnuels.reduce((sum, c) => sum + c.totalJoursPresence, 0)
     : 0;
 
+  // --- Filtrer et sommer les charges par catégorie pour l'année sélectionnée ---
+  const getPeriodsForYear = (periods: PeriodeCharge[]) => {
+    return periods.filter(p => {
+      let invoiceYear = -1;
+      if (p.id && p.id.startsWith('period-')) {
+        const tsStr = p.id.split('-')[1];
+        const ts = parseInt(tsStr);
+        if (!isNaN(ts)) {
+          invoiceYear = new Date(ts).getFullYear();
+        }
+      }
+      if (invoiceYear === -1 && p.dateDebut) {
+        invoiceYear = new Date(p.dateDebut).getFullYear();
+      }
+      return invoiceYear === selectedYear;
+    });
+  };
+
+  const gazPeriods = getPeriodsForYear(chargesDetaillees.gaz || []);
+  const elecPeriods = getPeriodsForYear(chargesDetaillees.electricite || []);
+  const autresPeriods = getPeriodsForYear(chargesDetaillees.autres || []);
+  const communesPeriods = getPeriodsForYear(chargesDetaillees.communes || []);
+
+  const totalGaz = gazPeriods.reduce((sum, p) => sum + p.montant, 0);
+  const totalElec = elecPeriods.reduce((sum, p) => sum + p.montant, 0);
+  const totalAutres = autresPeriods.reduce((sum, p) => sum + p.montant, 0);
+  const totalCommunes = communesPeriods.reduce((sum, p) => sum + p.montant, 0);
+
   return (
     <div className="animate-fade-in">
       {/* ========================================================
@@ -324,6 +352,151 @@ export default function Calculateur({
             <span>Enregistrer ce bilan annuel</span>
           </button>
         )}
+      </div>
+
+      {/* Récapitulatif des charges par catégorie pour l'année sélectionnée */}
+      <div className="card" style={{ marginBottom: '20px', borderLeft: '4px solid var(--secondary)' }}>
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+          <Calculator size={16} style={{ color: 'var(--secondary)' }} />
+          <span>Récapitulatif des Charges ({selectedYear})</span>
+        </div>
+        <p className="card-subtitle" style={{ marginBottom: '16px' }}>
+          Total des dépenses réelles réparties par catégorie de charges pour l'année {selectedYear}.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* Gaz */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '12px',
+            backgroundColor: 'var(--input-bg)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-md)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                <span>🔥 Gaz</span>
+              </div>
+              <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>
+                {totalGaz.toFixed(2)} €
+              </span>
+            </div>
+            {gazPeriods.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px', borderTop: '1px dashed var(--border-color)', paddingTop: '8px' }}>
+                {gazPeriods.map(p => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    <span>Du {new Date(p.dateDebut).toLocaleDateString('fr-FR')} au {new Date(p.dateFin).toLocaleDateString('fr-FR')}</span>
+                    <span style={{ fontWeight: 600 }}>{p.montant.toFixed(2)} €</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>
+                Aucune charge de gaz saisie pour {selectedYear}
+              </span>
+            )}
+          </div>
+
+          {/* Electricité */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '12px',
+            backgroundColor: 'var(--input-bg)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-md)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                <span>⚡ Électricité</span>
+              </div>
+              <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>
+                {totalElec.toFixed(2)} €
+              </span>
+            </div>
+            {elecPeriods.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px', borderTop: '1px dashed var(--border-color)', paddingTop: '8px' }}>
+                {elecPeriods.map(p => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    <span>Du {new Date(p.dateDebut).toLocaleDateString('fr-FR')} au {new Date(p.dateFin).toLocaleDateString('fr-FR')}</span>
+                    <span style={{ fontWeight: 600 }}>{p.montant.toFixed(2)} €</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>
+                Aucune charge d'électricité saisie pour {selectedYear}
+              </span>
+            )}
+          </div>
+
+          {/* Autres */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '12px',
+            backgroundColor: 'var(--input-bg)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-md)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                <span>🌐 Autres charges</span>
+              </div>
+              <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>
+                {totalAutres.toFixed(2)} €
+              </span>
+            </div>
+            {autresPeriods.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px', borderTop: '1px dashed var(--border-color)', paddingTop: '8px' }}>
+                {autresPeriods.map(p => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    <span>Du {new Date(p.dateDebut).toLocaleDateString('fr-FR')} au {new Date(p.dateFin).toLocaleDateString('fr-FR')}</span>
+                    <span style={{ fontWeight: 600 }}>{p.montant.toFixed(2)} €</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>
+                Aucune autre charge saisie pour {selectedYear}
+              </span>
+            )}
+          </div>
+
+          {/* Communes */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '12px',
+            backgroundColor: 'var(--input-bg)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-md)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                <span>🏠 Charges communes</span>
+              </div>
+              <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>
+                {totalCommunes.toFixed(2)} €
+              </span>
+            </div>
+            {communesPeriods.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px', borderTop: '1px dashed var(--border-color)', paddingTop: '8px' }}>
+                {communesPeriods.map(p => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    <span>Du {new Date(p.dateDebut).toLocaleDateString('fr-FR')} au {new Date(p.dateFin).toLocaleDateString('fr-FR')}</span>
+                    <span style={{ fontWeight: 600 }}>{p.montant.toFixed(2)} €</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>
+                Aucune charge commune saisie pour {selectedYear}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Modal de Saisie des Charges par Catégorie */}
