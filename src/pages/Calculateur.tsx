@@ -332,7 +332,7 @@ export default function Calculateur({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
           {/* Sélectionner l'année */}
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Sélectionner l'année</label>
+            <label className="form-label" style={{ minHeight: '38px', display: 'flex', alignItems: 'flex-end' }}>Sélectionner l'année</label>
             <select 
               className="input-field" 
               value={selectedYear}
@@ -350,7 +350,7 @@ export default function Calculateur({
 
           {/* Montant de l'avance mensuelle (€) */}
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Montant de l'avance mensuelle (€)</label>
+            <label className="form-label" style={{ minHeight: '38px', display: 'flex', alignItems: 'flex-end' }}>Montant de l'avance mensuelle (€)</label>
             <input 
               type="number" 
               className="input-field" 
@@ -364,7 +364,7 @@ export default function Calculateur({
 
           {/* Charges annuelles */}
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Charges annuelles</label>
+            <label className="form-label" style={{ minHeight: '38px', display: 'flex', alignItems: 'flex-end' }}>Charges annuelles</label>
             <input 
               type="text" 
               className="input-field" 
@@ -376,7 +376,7 @@ export default function Calculateur({
 
           {/* Avances annuelles cumulées */}
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Avances annuelles cumulées</label>
+            <label className="form-label" style={{ minHeight: '38px', display: 'flex', alignItems: 'flex-end' }}>Avances annuelles cumulées</label>
             <input 
               type="text" 
               className="input-field" 
