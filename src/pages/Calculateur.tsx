@@ -468,9 +468,6 @@ export default function Calculateur({
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--secondary)' }}>
-                          {rep.totalJoursColocs > 0 ? `${rep.montantGlobalMois.toFixed(2)} €` : '0.00 €'}
-                        </span>
                         {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </div>
                     </button>
