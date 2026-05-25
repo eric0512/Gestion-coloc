@@ -8,6 +8,8 @@ export interface Colocataire {
   dateEntree: string; // YYYY-MM-DD
   dateSortie: string | null; // YYYY-MM-DD ou null si toujours présent
   telephone?: string;
+  loyer?: number;
+  avanceCharge?: number;
 }
 
 interface ColocatairesProps {
@@ -30,7 +32,31 @@ export default function Colocataires({
   const [formDateEntree, setFormDateEntree] = useState('');
   const [formDateSortie, setFormDateSortie] = useState('');
   const [formTelephone, setFormTelephone] = useState('');
+  const [formLoyer, setFormLoyer] = useState('');
   const [colocFormError, setColocFormError] = useState('');
+
+  // Récupérer le montant de l'avance mensuelle définie dans le localStorage (définie dans le Calculateur)
+  const getDefinedAdvance = () => {
+    const saved = localStorage.getItem('coloc_avances_mensuelles');
+    if (saved) {
+      try {
+        const map = JSON.parse(saved);
+        const currentYear = new Date().getFullYear();
+        if (map[currentYear] !== undefined) {
+          return map[currentYear];
+        }
+        const keys = Object.keys(map).map(Number);
+        if (keys.length > 0) {
+          return map[keys[0]];
+        }
+      } catch (e) {
+        // fallback
+      }
+    }
+    return 150;
+  };
+
+  const avanceChargeDefinie = getDefinedAdvance();
 
   // --- États Modals ---
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -41,6 +67,8 @@ export default function Colocataires({
     dateEntree: string;
     dateSortie: string | null;
     telephone: string;
+    loyer: number;
+    avanceCharge: number;
   } | null>(null);
 
   const formatTelephone = (value: string) => {
@@ -76,7 +104,9 @@ export default function Colocataires({
       nom: formNom.trim(),
       dateEntree: formDateEntree,
       dateSortie: formDateSortie || null,
-      telephone: formTelephone.trim()
+      telephone: formTelephone.trim(),
+      loyer: parseFloat(formLoyer) || 0,
+      avanceCharge: avanceChargeDefinie
     };
 
     if (editingColocId) {
@@ -95,6 +125,7 @@ export default function Colocataires({
     setFormDateEntree(coloc.dateEntree);
     setFormDateSortie(coloc.dateSortie || '');
     setFormTelephone(coloc.telephone || '');
+    setFormLoyer(coloc.loyer !== undefined ? String(coloc.loyer) : '');
     setColocFormError('');
   };
 
@@ -110,6 +141,7 @@ export default function Colocataires({
     setFormDateEntree('');
     setFormDateSortie('');
     setFormTelephone('');
+    setFormLoyer('');
     setColocFormError('');
   };
 
@@ -238,6 +270,35 @@ export default function Colocataires({
             </div>
           </div>
 
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Montant du loyer (€) *</label>
+              <input 
+                type="number" 
+                step="any"
+                className="input-field" 
+                value={formLoyer}
+                onChange={(e) => setFormLoyer(e.target.value)}
+                placeholder="Ex: 500"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Avance de charges (€)</label>
+              <input 
+                type="text" 
+                className="input-field" 
+                value={`${avanceChargeDefinie.toFixed(2)} €`}
+                disabled
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  cursor: 'not-allowed',
+                  opacity: 0.8
+                }}
+              />
+            </div>
+          </div>
+
           <div className="form-group" style={{ marginBottom: '16px' }}>
             <label className="form-label">Téléphone</label>
             <input 
@@ -310,6 +371,9 @@ export default function Colocataires({
                             <span className="coloc-dates">
                               Entrée : {new Date(coloc.dateEntree).toLocaleDateString('fr-FR')} 
                               {coloc.dateSortie ? ` | Sortie : ${new Date(coloc.dateSortie).toLocaleDateString('fr-FR')}` : ' (Toujours présent)'}
+                            </span>
+                            <span className="coloc-dates" style={{ marginTop: '2px' }}>
+                              Loyer : {coloc.loyer !== undefined ? `${coloc.loyer.toFixed(2)} €` : '0.00 €'} | Avance : {coloc.avanceCharge !== undefined ? `${coloc.avanceCharge.toFixed(2)} €` : '0.00 €'}
                             </span>
                             {coloc.telephone && (
                               <span className="coloc-dates" style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
@@ -401,6 +465,14 @@ export default function Colocataires({
                     <span className="modal-confirm-value">{pendingColocData.telephone}</span>
                   </div>
                 )}
+                <div className="modal-confirm-row">
+                  <span className="modal-confirm-label">Loyer :</span>
+                  <span className="modal-confirm-value">{pendingColocData.loyer.toFixed(2)} €</span>
+                </div>
+                <div className="modal-confirm-row">
+                  <span className="modal-confirm-label">Avance charges :</span>
+                  <span className="modal-confirm-value">{pendingColocData.avanceCharge.toFixed(2)} €</span>
+                </div>
               </div>
             </div>
 
