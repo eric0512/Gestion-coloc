@@ -150,14 +150,37 @@ export default function Calculateur({
   // --- Calculer et synchroniser le montant global ---
   useEffect(() => {
     localStorage.setItem('coloc_charges_detaillees', JSON.stringify(chargesDetaillees));
-    const total = [...chargesDetaillees.gaz, ...chargesDetaillees.electricite, ...chargesDetaillees.autres, ...chargesDetaillees.communes]
-      .reduce((sum, p) => sum + p.montant, 0);
+    
+    const getPeriodsForYear = (periods: PeriodeCharge[]) => {
+      return periods.filter(p => {
+        let invoiceYear = -1;
+        if (p.id && p.id.startsWith('period-')) {
+          const tsStr = p.id.split('-')[1];
+          const ts = parseInt(tsStr);
+          if (!isNaN(ts)) {
+            invoiceYear = new Date(ts).getFullYear();
+          }
+        }
+        if (invoiceYear === -1 && p.dateDebut) {
+          invoiceYear = new Date(p.dateDebut).getFullYear();
+        }
+        return invoiceYear === selectedYear;
+      });
+    };
+
+    const total = [
+      ...getPeriodsForYear(chargesDetaillees.gaz || []),
+      ...getPeriodsForYear(chargesDetaillees.electricite || []),
+      ...getPeriodsForYear(chargesDetaillees.autres || []),
+      ...getPeriodsForYear(chargesDetaillees.communes || [])
+    ].reduce((sum, p) => sum + p.montant, 0);
+
     setMontantGlobalAnnuel(total.toFixed(2));
     
     if (onTriggerSync) {
       onTriggerSync();
     }
-  }, [chargesDetaillees, setMontantGlobalAnnuel, onTriggerSync]);
+  }, [chargesDetaillees, selectedYear, setMontantGlobalAnnuel, onTriggerSync]);
 
   const handleCategorySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const cat = e.target.value as 'gaz' | 'electricite' | 'autres' | 'communes' | '';
