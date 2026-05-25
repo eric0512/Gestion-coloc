@@ -77,19 +77,6 @@ export default function Calculateur({
   const [selectedInvoiceMonth, setSelectedInvoiceMonth] = useState<number | null>(null);
 
   const getInvoicesForMonth = (m: number, year: number) => {
-    const monthStart = new Date(year, m, 1);
-    const monthEnd = new Date(year, m + 1, 0);
-    
-    const formatDateString = (d: Date) => {
-      const y = d.getFullYear();
-      const mon = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${mon}-${day}`;
-    };
-    
-    const startStr = formatDateString(monthStart);
-    const endStr = formatDateString(monthEnd);
-    
     const results: { category: string; dateDebut: string; dateFin: string; montant: number; id: string }[] = [];
     
     const categories: ('gaz' | 'electricite' | 'autres' | 'communes')[] = ['gaz', 'electricite', 'autres', 'communes'];
@@ -103,15 +90,20 @@ export default function Calculateur({
     categories.forEach(cat => {
       const periods = chargesDetaillees[cat] || [];
       periods.forEach(p => {
-        const intersects = (p.dateDebut <= endStr) && (p.dateFin >= startStr);
-        if (intersects) {
-          results.push({
-            category: labels[cat],
-            dateDebut: p.dateDebut,
-            dateFin: p.dateFin,
-            montant: p.montant,
-            id: p.id
-          });
+        if (p.dateDebut) {
+          const invoiceStart = new Date(p.dateDebut);
+          const invoiceYear = invoiceStart.getFullYear();
+          const invoiceMonth = invoiceStart.getMonth(); // 0-11
+          
+          if (invoiceYear === year && invoiceMonth === m) {
+            results.push({
+              category: labels[cat],
+              dateDebut: p.dateDebut,
+              dateFin: p.dateFin,
+              montant: p.montant,
+              id: p.id
+            });
+          }
         }
       });
     });
