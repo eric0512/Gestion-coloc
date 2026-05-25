@@ -10,7 +10,9 @@ import {
   Home,
   Monitor,
   Smartphone,
-  RefreshCw
+  RefreshCw,
+  X,
+  AlertCircle
 } from 'lucide-react';
 
 import Accueil from './pages/Accueil';
@@ -94,6 +96,7 @@ export default function App() {
   const [colocataires, setColocataires] = useState<Colocataire[]>([]);
   const [calculsAnnuels, setCalculsAnnuels] = useState<CalculAnnuel[]>([]);
   const [activeTab, setActiveTab] = useState<'home' | 'colocs' | 'calculator' | 'history'>('home');
+  const [showBillingModal, setShowBillingModal] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dim' | 'dark'>('dark');
   const [layoutMode, setLayoutMode] = useState<'phone' | 'fullscreen'>('phone');
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: '', show: false });
@@ -599,6 +602,7 @@ export default function App() {
             selectedYear={selectedYear}
             latestCalculation={calculsAnnuels.length > 0 ? calculsAnnuels[0] : null}
             onNavigate={setActiveTab}
+            onOpenBilling={() => setShowBillingModal(true)}
           />
         )}
 
@@ -681,6 +685,97 @@ export default function App() {
           <span className="nav-label">Historique</span>
         </button>
       </nav>
+
+      {/* --- Modal de Facturation / Bilan de Régularisation --- */}
+      {showBillingModal && (
+        <div className="modal-overlay" onClick={() => setShowBillingModal(false)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div className="modal-header">
+              <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Users size={18} style={{ color: 'var(--secondary)' }} />
+                <span>Bilan Global de Régularisation ({selectedYear})</span>
+              </div>
+              <button className="icon-btn" onClick={() => setShowBillingModal(false)} aria-label="Fermer">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '20px', maxHeight: '80vh', overflowY: 'auto' }}>
+              {(!currentResult || currentResult.cumulsAnnuels.reduce((sum, c) => sum + c.totalJoursPresence, 0) === 0) ? (
+                <div className="empty-state" style={{ padding: '16px 0' }}>
+                  <AlertCircle size={32} className="empty-icon" style={{ color: 'var(--danger)' }} />
+                  <p className="empty-text">Aucun colocataire présent pour l'année {selectedYear}.</p>
+                </div>
+              ) : (
+                <>
+                  <p className="card-subtitle" style={{ marginBottom: '14px', lineHeight: 1.4, color: 'var(--text-secondary)', fontSize: '13px' }}>
+                    Ce bilan calcule la part réelle de chacun sur le budget total de <strong>{parseFloat(montantGlobalAnnuel || '0').toFixed(2)} €</strong> au prorata de leur présence cumulée sur l'année.
+                  </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {currentResult.cumulsAnnuels.map(cumul => {
+                      const solde = cumul.soldeAnnuel || 0;
+                      
+                      return (
+                        <div 
+                          key={cumul.colocId}
+                          style={{
+                            padding: '14px',
+                            borderRadius: 'var(--radius-md)',
+                            backgroundColor: 'var(--input-bg)',
+                            border: '1px solid var(--border-color)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)' }}>
+                              {cumul.nomComplet}
+                            </span>
+                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                              📅 <strong>{cumul.totalJoursPresence} jours</strong> de présence cumulée
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            <div>
+                              <span>Part due :</span>
+                              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px', fontSize: '13px' }}>
+                                {cumul.totalDu.toFixed(2)} €
+                              </div>
+                            </div>
+                            <div>
+                              <span>Avances payées :</span>
+                              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px', fontSize: '13px' }}>
+                                {(cumul.totalAvances || 0).toFixed(2)} €
+                              </div>
+                            </div>
+                            <div>
+                              <span>Solde de régul. :</span>
+                              <div style={{ 
+                                fontWeight: 700, 
+                                marginTop: '2px', 
+                                fontSize: '13px',
+                                color: solde > 0 ? 'var(--danger)' : solde < 0 ? 'var(--success)' : 'var(--text-primary)'
+                              }}>
+                                {solde > 0 ? `+${solde.toFixed(2)} € (à payer)` : solde < 0 ? `${solde.toFixed(2)} € (à rembourser)` : '0.00 €'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => setShowBillingModal(false)} style={{ width: 'auto', padding: '10px 20px', fontSize: '14px' }}>
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

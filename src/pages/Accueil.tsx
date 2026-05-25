@@ -13,13 +13,15 @@ interface AccueilProps {
   selectedYear: number;
   latestCalculation: CalculAnnuel | null;
   onNavigate: (tab: 'home' | 'colocs' | 'calculator' | 'history') => void;
+  onOpenBilling: () => void;
 }
 
 export default function Accueil({
   colocatairesCount,
   selectedYear,
   latestCalculation,
-  onNavigate
+  onNavigate,
+  onOpenBilling
 }: AccueilProps) {
   return (
     <div className="animate-fade-in">
@@ -106,7 +108,7 @@ export default function Accueil({
         </button>
 
         <button
-          onClick={() => onNavigate('calculator')}
+          onClick={onOpenBilling}
           className="btn"
           style={{
             display: 'flex',
