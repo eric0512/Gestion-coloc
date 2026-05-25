@@ -38,6 +38,8 @@ export default function Calculateur({
   onTriggerSync
 }: CalculateurProps) {
   
+  console.log("CALCULATEUR RENDER", { selectedYear, montantGlobalAnnuel });
+
   // --- État des charges détaillées ---
   const [chargesDetaillees, setChargesDetaillees] = useState<ChargesDetaillees>(() => {
     const saved = localStorage.getItem('coloc_charges_detaillees');
@@ -174,6 +176,13 @@ export default function Calculateur({
       ...getPeriodsForYear(chargesDetaillees.autres || []),
       ...getPeriodsForYear(chargesDetaillees.communes || [])
     ].reduce((sum, p) => sum + p.montant, 0);
+
+    console.log("CALCULATEUR EFFECT RUNNING", {
+      selectedYear,
+      total,
+      totalGaz: totalGaz,
+      gazPeriodsCount: gazPeriods.length
+    });
 
     setMontantGlobalAnnuel(total.toFixed(2));
     
@@ -331,7 +340,7 @@ export default function Calculateur({
             <input 
               type="text" 
               className="input-field" 
-              value={`${parseFloat(montantGlobalAnnuel || '0').toFixed(2)} €`}
+              value={`${(totalGaz + totalElec + totalAutres + totalCommunes).toFixed(2)} €`}
               disabled
               style={{ fontWeight: 'bold', color: 'var(--primary)', backgroundColor: 'var(--input-bg)' }}
             />
