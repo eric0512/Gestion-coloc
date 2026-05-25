@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calculator, DollarSign, AlertCircle, Check, Flame, Zap, Wifi, Trash2, X, Home } from 'lucide-react';
-import type { RepartitionMensuelle, CumulAnnuelColoc } from '../App';
+import { Calculator, DollarSign, AlertCircle, Flame, Zap, Wifi, Trash2, X, Home } from 'lucide-react';
 
 const NOMS_MOIS = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -26,13 +25,6 @@ interface CalculateurProps {
   setSelectedYear: (year: number) => void;
   montantGlobalAnnuel: string;
   setMontantGlobalAnnuel: (amount: string) => void;
-  calculDescription: string;
-  setCalculDescription: (desc: string) => void;
-  currentResult: {
-    repartitionsMensuelles: RepartitionMensuelle[];
-    cumulsAnnuels: CumulAnnuelColoc[];
-  } | null;
-  onSaveCalculation: () => void;
   onNavigate: (tab: 'home' | 'colocs' | 'calculator' | 'history') => void;
   onTriggerSync?: () => void;
 }
@@ -42,8 +34,6 @@ export default function Calculateur({
   setSelectedYear,
   montantGlobalAnnuel,
   setMontantGlobalAnnuel,
-  currentResult,
-  onSaveCalculation,
   onNavigate,
   onTriggerSync
 }: CalculateurProps) {
@@ -231,9 +221,7 @@ export default function Calculateur({
     }));
   };
 
-  const totalJoursPresenceTous = currentResult 
-    ? currentResult.cumulsAnnuels.reduce((sum, c) => sum + c.totalJoursPresence, 0)
-    : 0;
+
 
   // --- Filtrer et sommer les charges par catégorie pour l'année sélectionnée ---
   const getPeriodsForYear = (periods: PeriodeCharge[]) => {
@@ -342,16 +330,6 @@ export default function Calculateur({
           </select>
         </div>
 
-        {currentResult && totalJoursPresenceTous > 0 && (
-          <button 
-            className="btn btn-primary" 
-            style={{ marginTop: '20px', width: '100%' }}
-            onClick={onSaveCalculation}
-          >
-            <Check size={18} />
-            <span>Enregistrer ce bilan annuel</span>
-          </button>
-        )}
       </div>
 
       {/* Récapitulatif des charges par catégorie pour l'année sélectionnée */}

@@ -108,7 +108,6 @@ export default function App() {
   // --- États Saisie des Charges Annuelles ---
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [montantGlobalAnnuel, setMontantGlobalAnnuel] = useState<string>('7200'); // 7200 € / an par défaut
-  const [calculDescription, setCalculDescription] = useState('Charges Annuelles Générales');
 
   // --- Initialisation & LocalStorage & Chargement Supabase ---
   useEffect(() => {
@@ -451,36 +450,6 @@ export default function App() {
     }
   };
 
-  // --- Sauvegarde des calculs ---
-  const handleSaveCalculation = () => {
-    if (!currentResult || parseFloat(montantGlobalAnnuel) <= 0) {
-      showToast('Montant annuel invalide');
-      return;
-    }
-
-    const totalJoursTousColocs = currentResult.cumulsAnnuels.reduce((sum, c) => sum + c.totalJoursPresence, 0);
-    if (totalJoursTousColocs === 0) {
-      showToast('Aucun colocataire présent sur toute l\'année');
-      return;
-    }
-
-    const nouveauCalcul: CalculAnnuel = {
-      id: `calc-annuel-${Date.now()}`,
-      annee: selectedYear,
-      titre: calculDescription.trim() || `Charges Annuelles ${selectedYear}`,
-      montantGlobalAnnuel: parseFloat(montantGlobalAnnuel),
-      dateCalcul: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-      repartitionsMensuelles: currentResult.repartitionsMensuelles,
-      cumulsAnnuels: currentResult.cumulsAnnuels.filter(c => c.totalJoursPresence > 0)
-    };
-
-    const updatedCalculs = [nouveauCalcul, ...calculsAnnuels];
-    setCalculsAnnuels(updatedCalculs);
-    localStorage.setItem('coloc_calculs_annuels', JSON.stringify(updatedCalculs));
-    showToast('Bilan annuel enregistré');
-    setActiveTab('history');
-    syncToSupabase(colocataires, updatedCalculs);
-  };
 
   const handleDeleteCalcul = (id: string) => {
     if (window.confirm('Voulez-vous supprimer ce bilan de l\'historique ?')) {
@@ -1033,10 +1002,6 @@ export default function App() {
             setSelectedYear={setSelectedYear}
             montantGlobalAnnuel={montantGlobalAnnuel}
             setMontantGlobalAnnuel={setMontantGlobalAnnuel}
-            calculDescription={calculDescription}
-            setCalculDescription={setCalculDescription}
-            currentResult={currentResult}
-            onSaveCalculation={handleSaveCalculation}
             onNavigate={setActiveTab}
             onTriggerSync={handleTriggerSync}
           />
