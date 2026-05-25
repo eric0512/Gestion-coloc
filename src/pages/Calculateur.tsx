@@ -330,52 +330,60 @@ export default function Calculateur({
         </div>
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Sélectionner l'année</label>
-              <input 
-                type="number" 
-                className="input-field" 
-                value={selectedYear}
-                onChange={(e) => handleYearChange(parseInt(e.target.value) || 2026)}
-                placeholder="Ex: 2026"
-              />
-            </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Montant de l'avance mensuelle (€)</label>
-              <input 
-                type="number" 
-                className="input-field" 
-                value={avanceMensuelle || ''}
-                onChange={(e) => handleAvanceChange(parseFloat(e.target.value) || 0)}
-                placeholder="Ex: 150.00"
-                min="0"
-                step="0.01"
-              />
-            </div>
+          {/* Sélectionner l'année */}
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Sélectionner l'année</label>
+            <select 
+              className="input-field" 
+              value={selectedYear}
+              onChange={(e) => handleYearChange(parseInt(e.target.value) || 2026)}
+            >
+              <option value={2024}>2024</option>
+              <option value={2025}>2025</option>
+              <option value={2026}>2026</option>
+              <option value={2027}>2027</option>
+              <option value={2028}>2028</option>
+              <option value={2029}>2029</option>
+              <option value={2030}>2030</option>
+            </select>
           </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Charges annuelles</label>
-              <input 
-                type="text" 
-                className="input-field" 
-                value={`${parseFloat(montantGlobalAnnuel || '0').toFixed(2)} €`}
-                disabled
-                style={{ fontWeight: 'bold', color: 'var(--primary)', backgroundColor: 'var(--input-bg)' }}
-              />
-            </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Avances annuelles cumulées</label>
-              <input 
-                type="text" 
-                className="input-field" 
-                value={`${currentResult ? currentResult.cumulsAnnuels.reduce((sum, c) => sum + (c.totalAvances || 0), 0).toFixed(2) : '0.00'} €`}
-                disabled
-                style={{ fontWeight: 'bold', color: 'var(--text-primary)', backgroundColor: 'var(--input-bg)' }}
-              />
-            </div>
+
+          {/* Montant de l'avance mensuelle (€) */}
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Montant de l'avance mensuelle (€)</label>
+            <input 
+              type="number" 
+              className="input-field" 
+              value={avanceMensuelle || ''}
+              onChange={(e) => handleAvanceChange(parseFloat(e.target.value) || 0)}
+              placeholder="Ex: 150.00"
+              min="0"
+              step="0.01"
+            />
+          </div>
+
+          {/* Charges annuelles */}
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Charges annuelles</label>
+            <input 
+              type="text" 
+              className="input-field" 
+              value={`${parseFloat(montantGlobalAnnuel || '0').toFixed(2)} €`}
+              disabled
+              style={{ fontWeight: 'bold', color: 'var(--primary)', backgroundColor: 'var(--input-bg)' }}
+            />
+          </div>
+
+          {/* Avances annuelles cumulées */}
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Avances annuelles cumulées</label>
+            <input 
+              type="text" 
+              className="input-field" 
+              value={`${currentResult ? currentResult.cumulsAnnuels.reduce((sum, c) => sum + (c.totalAvances || 0), 0).toFixed(2) : '0.00'} €`}
+              disabled
+              style={{ fontWeight: 'bold', color: 'var(--text-primary)', backgroundColor: 'var(--input-bg)' }}
+            />
           </div>
         </div>
 
@@ -393,24 +401,6 @@ export default function Calculateur({
             <option value="communes">🏠 Charges communes</option>
           </select>
         </div>
-
-        {currentResult && totalJoursPresenceTous > 0 && (
-          <button 
-            className="btn btn-primary" 
-            style={{ 
-              marginTop: '20px', 
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}
-            onClick={onSaveCalculation}
-          >
-            <Check size={18} />
-            <span>Enregistrer ce bilan annuel</span>
-          </button>
-        )}
       </div>
 
 
@@ -602,6 +592,17 @@ export default function Calculateur({
                     );
                   })}
                 </div>
+
+                {currentResult && totalJoursPresenceTous > 0 && (
+                  <button 
+                    className="btn btn-primary" 
+                    style={{ marginTop: '20px', width: '100%' }}
+                    onClick={onSaveCalculation}
+                  >
+                    <Check size={18} />
+                    <span>Enregistrer ce bilan annuel</span>
+                  </button>
+                )}
               </>
             )}
           </div>
