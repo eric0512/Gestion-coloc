@@ -19,6 +19,7 @@ import Accueil from './pages/Accueil';
 import Colocataires from './pages/Colocataires';
 import type { Colocataire } from './pages/Colocataires';
 import Calculateur from './pages/Calculateur';
+import type { ChargesDetaillees } from './pages/Calculateur';
 import Historique from './pages/Historique';
 import { supabase } from './supabaseClient';
 
@@ -250,8 +251,22 @@ export default function App() {
   // --- Algorithme de Répartition Annuelle au Prorata ---
   const performAnnualCalculation = () => {
     if (!selectedYear) return null;
-    const annualAmount = parseFloat(montantGlobalAnnuel) || 0;
-    const monthlyAmount = annualAmount / 12;
+
+    // Load detailed charges from localStorage
+    const savedCharges = localStorage.getItem('coloc_charges_detaillees');
+    let chargesDetaillees: ChargesDetaillees = { gaz: [], electricite: [], autres: [], communes: [] };
+    if (savedCharges) {
+      try {
+        chargesDetaillees = JSON.parse(savedCharges);
+      } catch (e) {}
+    }
+
+    const allPeriods = [
+      ...(chargesDetaillees.gaz || []),
+      ...(chargesDetaillees.electricite || []),
+      ...(chargesDetaillees.autres || []),
+      ...(chargesDetaillees.communes || [])
+    ];
 
     const formatDateString = (d: Date) => {
       const year = d.getFullYear();
@@ -267,38 +282,52 @@ export default function App() {
       cumulsColocsMap[c.id] = { totalDu: 0, totalJours: 0, totalAvances: 0, nomComplet: `${c.prenom} ${c.nom}` };
     });
 
-    // Cartes pour suivre la progression cumulée mois par mois
     const runningCharges: { [id: string]: number } = {};
     const runningAvances: { [id: string]: number } = {};
 
     const now = new Date();
     const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-11
+    const currentMonth = now.getMonth();
+
+    // Calculate cost per day for each period
+    const activePeriods = allPeriods.map(p => {
+      const start = new Date(p.dateDebut);
+      const end = new Date(p.dateFin);
+      const diffTime = Math.max(0, end.getTime() - start.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      const costPerDay = diffDays > 0 ? p.montant / diffDays : 0;
+      return {
+        ...p,
+        costPerDay,
+        startDate: p.dateDebut,
+        endDate: p.dateFin
+      };
+    });
 
     for (let m = 0; m < 12; m++) {
       const startDate = new Date(selectedYear, m, 1);
       const endDate = new Date(selectedYear, m + 1, 0);
       const daysInMonth = endDate.getDate();
 
-      // Ajuster la date limite de calcul pour les mois futurs
       let limitEndDate = new Date(endDate.getTime());
-      
       if (selectedYear === currentYear) {
         if (m > currentMonth) {
-          // Mois futur : aucune présence
           limitEndDate = new Date(selectedYear, m, 0);
         }
       } else if (selectedYear > currentYear) {
-        // Année future : aucune présence
         limitEndDate = new Date(selectedYear, m, 0);
       }
 
       const parts: PartCalcul[] = [];
       let totalJoursColocs = 0;
 
+      const dailyPresence: { [day: number]: string[] } = {};
+      for (let day = 1; day <= daysInMonth; day++) {
+        dailyPresence[day] = [];
+      }
+
       colocataires.forEach(coloc => {
         let activeDaysInMonth = 0;
-
         const current = new Date(startDate.getTime());
         while (current <= limitEndDate) {
           const currentStr = formatDateString(current);
@@ -307,6 +336,7 @@ export default function App() {
 
           if (hasEntered && hasNotLeft) {
             activeDaysInMonth++;
+            dailyPresence[current.getDate()].push(coloc.id);
           }
           current.setDate(current.getDate() + 1);
         }
@@ -319,35 +349,52 @@ export default function App() {
           avanceDue: Math.round((activeDaysInMonth * ((coloc.avanceCharge !== undefined ? coloc.avanceCharge : 150) / daysInMonth)) * 100) / 100,
           solde: 0
         });
-
         totalJoursColocs += activeDaysInMonth;
       });
 
-      const tauxJournalier = totalJoursColocs > 0 ? monthlyAmount / totalJoursColocs : 0;
+      const roommatesDailyAmount: { [colocId: string]: number } = {};
+      colocataires.forEach(c => { roommatesDailyAmount[c.id] = 0; });
 
-      // 1. Calculer d'abord les valeurs mensuelles réelles de ce mois
+      for (let day = 1; day <= daysInMonth; day++) {
+        const currentDate = new Date(selectedYear, m, day);
+        const currentDateStr = formatDateString(currentDate);
+
+        if (currentDate > limitEndDate) continue;
+
+        const activePeriodsOnDay = activePeriods.filter(p => currentDateStr >= p.startDate && currentDateStr <= p.endDate);
+        const costOnDay = activePeriodsOnDay.reduce((sum, p) => sum + p.costPerDay, 0);
+
+        const presentColocs = dailyPresence[day] || [];
+        if (presentColocs.length > 0 && costOnDay > 0) {
+          const costPerPerson = costOnDay / presentColocs.length;
+          presentColocs.forEach(colocId => {
+            roommatesDailyAmount[colocId] += costPerPerson;
+          });
+        }
+      }
+
       const monthlyValues = parts.map(part => {
-        const rawMontant = part.joursPresence * tauxJournalier;
+        const rawMontant = roommatesDailyAmount[part.colocId] || 0;
         const montantDu = Math.round(rawMontant * 100) / 100;
         const avanceDue = part.avanceDue || 0;
-
-        return {
-          colocId: part.colocId,
-          montantDu,
-          avanceDue
-        };
+        return { colocId: part.colocId, montantDu, avanceDue };
       });
 
-      // 2. Calculer le total mensuel calculé et l'écart d'arrondi
-      const totalCalculeMois = monthlyValues.reduce((sum, p) => sum + p.montantDu, 0);
-      const ecartMois = monthlyAmount - totalCalculeMois;
+      let monthlyBudgetReel = 0;
+      for (let day = 1; day <= daysInMonth; day++) {
+        const currentDate = new Date(selectedYear, m, day);
+        const currentDateStr = formatDateString(currentDate);
+        if (currentDate > limitEndDate) continue;
+        const activePeriodsOnDay = activePeriods.filter(p => currentDateStr >= p.startDate && currentDateStr <= p.endDate);
+        monthlyBudgetReel += activePeriodsOnDay.reduce((sum, p) => sum + p.costPerDay, 0);
+      }
+      monthlyBudgetReel = Math.round(monthlyBudgetReel * 100) / 100;
 
-      // 3. Ajuster l'écart d'arrondi sur la personne ayant le plus de présence ce mois-ci
+      const totalCalculeMois = monthlyValues.reduce((sum, p) => sum + p.montantDu, 0);
+      const ecartMois = monthlyBudgetReel - totalCalculeMois;
+
       if (Math.abs(ecartMois) > 0 && Math.abs(ecartMois) < 1 && monthlyValues.length > 0) {
-        const indexMax = parts.reduce(
-          (maxIdx, part, idx, arr) => (part.joursPresence > arr[maxIdx].joursPresence ? idx : maxIdx),
-          0
-        );
+        const indexMax = parts.reduce((maxIdx, part, idx, arr) => (part.joursPresence > arr[maxIdx].joursPresence ? idx : maxIdx), 0);
         if (parts[indexMax] && parts[indexMax].joursPresence > 0) {
           const colocIdAjuste = parts[indexMax].colocId;
           const matchVal = monthlyValues.find(v => v.colocId === colocIdAjuste);
@@ -357,7 +404,6 @@ export default function App() {
         }
       }
 
-      // 4. Mettre à jour les cumuls annuels finaux et les progressions mensuelles cumulées
       const finalParts = parts.map(part => {
         const monthlyVal = monthlyValues.find(v => v.colocId === part.colocId) || { montantDu: 0, avanceDue: 0 };
         const montantDuMensuel = monthlyVal.montantDu;
@@ -369,7 +415,6 @@ export default function App() {
           cumulsColocsMap[part.colocId].totalAvances += avanceDueMensuelle;
         }
 
-        // Ajouter au cumul de progression mensuelle
         runningCharges[part.colocId] = (runningCharges[part.colocId] || 0) + montantDuMensuel;
         runningAvances[part.colocId] = (runningAvances[part.colocId] || 0) + avanceDueMensuelle;
 
@@ -384,9 +429,9 @@ export default function App() {
       repartitionsMensuelles.push({
         numeroMois: m,
         nomMois: NOMS_MOIS[m],
-        montantGlobalMois: monthlyAmount,
+        montantGlobalMois: monthlyBudgetReel,
         totalJoursColocs,
-        tauxJournalier,
+        tauxJournalier: totalJoursColocs > 0 ? monthlyBudgetReel / totalJoursColocs : 0,
         daysInMonth,
         parts: finalParts
       });
