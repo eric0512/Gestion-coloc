@@ -12,7 +12,8 @@ import {
   Smartphone,
   RefreshCw,
   X,
-  AlertCircle
+  AlertCircle,
+  FileSpreadsheet
 } from 'lucide-react';
 
 import Accueil from './pages/Accueil';
@@ -20,6 +21,7 @@ import Colocataires from './pages/Colocataires';
 import type { Colocataire } from './pages/Colocataires';
 import Calculateur from './pages/Calculateur';
 import type { ChargesDetaillees } from './pages/Calculateur';
+import Regularisation from './pages/Regularisation';
 import Historique from './pages/Historique';
 import { supabase } from './supabaseClient';
 
@@ -96,7 +98,7 @@ export default function App() {
   // --- États principaux ---
   const [colocataires, setColocataires] = useState<Colocataire[]>([]);
   const [calculsAnnuels, setCalculsAnnuels] = useState<CalculAnnuel[]>([]);
-  const [activeTab, setActiveTab] = useState<'home' | 'colocs' | 'calculator' | 'history'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'colocs' | 'calculator' | 'regularisation' | 'history'>('home');
   const [showBillingModal, setShowBillingModal] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dim' | 'dark'>('dark');
   const [layoutMode, setLayoutMode] = useState<'phone' | 'fullscreen'>('phone');
@@ -1058,6 +1060,18 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'regularisation' && (
+          <Regularisation 
+            colocataires={colocataires}
+            calculsAnnuels={calculsAnnuels}
+            setCalculsAnnuels={setCalculsAnnuels}
+            onNavigate={setActiveTab}
+            showToast={showToast}
+            onTriggerSync={handleTriggerSync}
+            currentResult={currentResult}
+          />
+        )}
+
         {activeTab === 'history' && (
           <Historique 
             calculsAnnuels={calculsAnnuels}
@@ -1098,6 +1112,16 @@ export default function App() {
             <Calculator size={18} />
           </div>
           <span className="nav-label">Calculateur</span>
+        </button>
+
+        <button 
+          className={`nav-item ${activeTab === 'regularisation' ? 'active' : ''}`}
+          onClick={() => setActiveTab('regularisation')}
+        >
+          <div className="icon-wrapper" style={{ padding: '4px 14px' }}>
+            <FileSpreadsheet size={18} />
+          </div>
+          <span className="nav-label">Régularisation</span>
         </button>
 
         <button 
