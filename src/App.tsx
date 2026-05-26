@@ -553,8 +553,8 @@ export default function App() {
     }
 
     if (selectedYear === currentYear) {
-      // Régularisation arrêtée au mois précédent l'édition du PDF (currentMonth - 1)
-      const targetMonthIndex = currentMonth - 1;
+      // Régularisation arrêtée au mois en cours (currentMonth)
+      const targetMonthIndex = currentMonth;
       
       if (targetMonthIndex >= 0 && targetMonthIndex < currentResult.repartitionsMensuelles.length) {
         const rep = currentResult.repartitionsMensuelles[targetMonthIndex];
@@ -566,7 +566,7 @@ export default function App() {
         }
       }
 
-      // Somme des jours de présence uniquement jusqu'au mois précédent
+      // Somme des jours de présence jusqu'au mois en cours
       for (let m = 0; m <= targetMonthIndex; m++) {
         const rep = currentResult.repartitionsMensuelles[m];
         const part = rep.parts.find(p => p.colocId === colocId);
@@ -612,8 +612,8 @@ export default function App() {
     let cumAvancePrev = 0;
 
     currentResult.repartitionsMensuelles.forEach(rep => {
-      // Filtrer pour ne garder que les mois strictement antérieurs au mois actuel si c'est l'année en cours
-      if (selectedYear === currentYear && rep.numeroMois >= currentMonth) {
+      // Filtrer pour ne garder que les mois antérieurs ou égal au mois en cours si c'est l'année en cours
+      if (selectedYear === currentYear && rep.numeroMois > currentMonth) {
         return;
       }
 
@@ -1128,7 +1128,7 @@ export default function App() {
               ) : (
                 <>
                   <p className="card-subtitle" style={{ marginBottom: '14px', lineHeight: 1.4, color: 'var(--text-secondary)', fontSize: '13px' }}>
-                    Ce bilan calcule la part réelle de chacun sur le budget au prorata de leur présence cumulée sur la période (régularisation arrêtée au mois précédent).
+                    Ce bilan calcule la part réelle de chacun sur le budget au prorata de leur présence cumulée sur la période (régularisation arrêtée au mois en cours).
                     <span style={{ display: 'block', marginTop: '6px', color: 'var(--primary)', fontWeight: 600 }}>
                       💡 Cliquez sur un colocataire ci-dessous pour générer son reçu PDF individuel détaillé (loyer et charges).
                     </span>
@@ -1136,7 +1136,7 @@ export default function App() {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {currentResult.cumulsAnnuels.map(cumul => {
-                      // Obtenir les cumuls arrêtés au mois précédent
+                      // Obtenir les cumuls arrêtés au mois en cours
                       const data = getRoommateCumulativeData(cumul.colocId);
                       const solde = data.soldeAnnuel;
                       
