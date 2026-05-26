@@ -179,9 +179,10 @@ export function genererBilanAnnuel(
   // 4. Formater les résultats individuels
   const bilans: RoommateBill[] = Object.keys(mappingCalcul).map(colocId => {
     const data = mappingCalcul[colocId];
+    const coloc = colocataires.find(c => c.id === colocId);
     
-    // Proratisation des avances mensuelles : (jours de présence / jours moyens par mois) * avance charge mensuelle
-    const totalAvancesPayees = Math.round(((data.jours / 30.4375) * data.avanceMensuelle) * 100) / 100;
+    // Calcul précis des avances selon la règle : dû complet au 5 du mois sauf si départ/arrivée ce mois-ci
+    const totalAvancesPayees = coloc ? getRoommateYearlyAdvances(coloc, anneeTarget) : 0;
     const totalDuReel = Math.round(data.totalDu * 100) / 100;
     const solde = Math.round((totalDuReel - totalAvancesPayees) * 100) / 100;
 
@@ -209,4 +210,54 @@ export function genererBilanAnnuel(
     joursCouvertsSet,
     totalDays
   };
+}
+
+/**
+ * Calcule la somme exacte des avances pour une année donnée
+ * en appliquant la règle : le coloc doit son avance au 5 du mois pour le mois complet
+ * si sa date de sortie n'est pas connue (ou se situe après la fin du mois).
+ */
+export function getRoommateYearlyAdvances(coloc: Colocataire, year: number): number {
+  let totalAdvances = 0;
+  for (let m = 0; m < 12; m++) {
+    const startDate = new Date(year, m, 1);
+    const endDate = new Date(year, m + 1, 0);
+    const daysInMonth = endDate.getDate();
+
+    const formatDateStr = (d: Date) => {
+      const y = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${mo}-${day}`;
+    };
+
+    const startOfMonthStr = formatDateStr(startDate);
+    const endOfMonthStr = formatDateStr(endDate);
+
+    // Compter les jours de présence dans ce mois
+    let daysOfPresence = 0;
+    const current = new Date(startDate.getTime());
+    while (current <= endDate) {
+      const currentStr = formatDateStr(current);
+      const hasEntered = currentStr >= coloc.dateEntree;
+      const hasNotLeft = !coloc.dateSortie || currentStr <= coloc.dateSortie;
+      if (hasEntered && hasNotLeft) {
+        daysOfPresence++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    if (daysOfPresence > 0) {
+      const avanceAmount = coloc.avanceCharge !== undefined ? coloc.avanceCharge : 150;
+      const hasEnteredBeforeOrOnFirst = coloc.dateEntree <= startOfMonthStr;
+      const isDepartureUnknownOrFuture = !coloc.dateSortie || coloc.dateSortie > endOfMonthStr;
+
+      if (hasEnteredBeforeOrOnFirst && isDepartureUnknownOrFuture) {
+        totalAdvances += avanceAmount;
+      } else {
+        totalAdvances += Math.round((daysOfPresence * (avanceAmount / daysInMonth)) * 100) / 100;
+      }
+    }
+  }
+  return Math.round(totalAdvances * 100) / 100;
 }

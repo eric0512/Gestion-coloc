@@ -355,7 +355,19 @@ export default function App() {
           nomComplet: `${coloc.prenom} ${coloc.nom}`,
           joursPresence: activeDaysInMonth,
           montantDu: 0,
-          avanceDue: Math.round((activeDaysInMonth * ((coloc.avanceCharge !== undefined ? coloc.avanceCharge : 150) / daysInMonth)) * 100) / 100,
+          avanceDue: (() => {
+            const startDateStr = formatDateString(startDate);
+            const endOfMonthStr = formatDateString(endDate);
+            const hasEnteredBeforeOrOnFirst = coloc.dateEntree <= startDateStr;
+            const isDepartureUnknownOrFuture = !coloc.dateSortie || coloc.dateSortie > endOfMonthStr;
+            
+            const avanceAmount = coloc.avanceCharge !== undefined ? coloc.avanceCharge : 150;
+            if (hasEnteredBeforeOrOnFirst && isDepartureUnknownOrFuture) {
+              return avanceAmount;
+            } else {
+              return Math.round((activeDaysInMonth * (avanceAmount / daysInMonth)) * 100) / 100;
+            }
+          })(),
           solde: 0
         });
         totalJoursColocs += activeDaysInMonth;
@@ -632,8 +644,28 @@ export default function App() {
         const chargeDue = Math.round((part.montantDu - cumDuPrev) * 100) / 100;
         const avanceDue = Math.round(((part.avanceDue || 0) - cumAvancePrev) * 100) / 100;
         
-        // Calcul du loyer proratisé au jour près
-        const loyerDu = Math.round((part.joursPresence * ((coloc.loyer || 0) / rep.daysInMonth)) * 100) / 100;
+        // Calcul du loyer selon la règle d'exigibilité (dû complet si pas de départ/arrivée ce mois-ci)
+        const loyerDu = (() => {
+          const startDate = new Date(selectedYear, rep.numeroMois, 1);
+          const endDate = new Date(selectedYear, rep.numeroMois + 1, 0);
+          const formatDateStr = (d: Date) => {
+            const y = d.getFullYear();
+            const mo = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${mo}-${day}`;
+          };
+          const startDateStr = formatDateStr(startDate);
+          const endOfMonthStr = formatDateStr(endDate);
+          const hasEnteredBeforeOrOnFirst = coloc.dateEntree <= startDateStr;
+          const isDepartureUnknownOrFuture = !coloc.dateSortie || coloc.dateSortie > endOfMonthStr;
+          
+          const rentAmount = coloc.loyer !== undefined ? coloc.loyer : 0;
+          if (hasEnteredBeforeOrOnFirst && isDepartureUnknownOrFuture) {
+            return rentAmount;
+          } else {
+            return Math.round((part.joursPresence * (rentAmount / rep.daysInMonth)) * 100) / 100;
+          }
+        })();
         
         // Total mensuel dû (Loyer + Charges Réelles)
         const totalMensuel = Math.round((loyerDu + chargeDue) * 100) / 100;
