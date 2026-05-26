@@ -159,41 +159,53 @@ export default function Calculateur({
     return '';
   };
 
+  const getProratedPeriodsForYear = (periods: PeriodeCharge[], year: number) => {
+    const yearStartStr = `${year}-01-01`;
+    const yearEndStr = `${year}-12-31`;
+
+    return periods
+      .filter(p => p.dateDebut <= yearEndStr && p.dateFin >= yearStartStr)
+      .map(p => {
+        const start = new Date(p.dateDebut);
+        const end = new Date(p.dateFin);
+        const diffTime = Math.max(0, end.getTime() - start.getTime());
+        const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        const costPerDay = totalDays > 0 ? p.montant / totalDays : 0;
+
+        const overlapStart = new Date(p.dateDebut > yearStartStr ? p.dateDebut : yearStartStr);
+        const overlapEnd = new Date(p.dateFin < yearEndStr ? p.dateFin : yearEndStr);
+        const overlapTime = Math.max(0, overlapEnd.getTime() - overlapStart.getTime());
+        const overlapDays = Math.ceil(overlapTime / (1000 * 60 * 60 * 24)) + 1;
+
+        const proratedAmount = overlapDays * costPerDay;
+
+        return {
+          ...p,
+          montantAffiche: proratedAmount,
+          isProrated: totalDays !== overlapDays,
+          totalDays,
+          overlapDays
+        };
+      });
+  };
+
   // --- Calculer et synchroniser le montant global ---
   useEffect(() => {
     localStorage.setItem('coloc_charges_detaillees', JSON.stringify(chargesDetaillees));
     
-    const getPeriodsForYear = (periods: PeriodeCharge[]) => {
-      return periods.filter(p => {
-        let invoiceYear = -1;
-        if (p.id && p.id.startsWith('period-')) {
-          const tsStr = p.id.split('-')[1];
-          const ts = parseInt(tsStr);
-          if (!isNaN(ts)) {
-            invoiceYear = new Date(ts).getFullYear();
-          }
-        }
-        if (invoiceYear === -1 && p.dateDebut) {
-          invoiceYear = new Date(p.dateDebut).getFullYear();
-        }
-        return invoiceYear === selectedYear;
-      });
-    };
+    const gpGaz = getProratedPeriodsForYear(chargesDetaillees.gaz || [], selectedYear);
+    const gpElec = getProratedPeriodsForYear(chargesDetaillees.electricite || [], selectedYear);
+    const gpInternet = getProratedPeriodsForYear(chargesDetaillees.internet || [], selectedYear);
+    const gpChaudiere = getProratedPeriodsForYear(chargesDetaillees.chaudiere || [], selectedYear);
+    const gpCommunes = getProratedPeriodsForYear(chargesDetaillees.communes || [], selectedYear);
 
     const total = [
-      ...getPeriodsForYear(chargesDetaillees.gaz || []),
-      ...getPeriodsForYear(chargesDetaillees.electricite || []),
-      ...getPeriodsForYear(chargesDetaillees.internet || []),
-      ...getPeriodsForYear(chargesDetaillees.chaudiere || []),
-      ...getPeriodsForYear(chargesDetaillees.communes || [])
-    ].reduce((sum, p) => sum + p.montant, 0);
-
-    console.log("CALCULATEUR EFFECT RUNNING", {
-      selectedYear,
-      total,
-      totalGaz: totalGaz,
-      gazPeriodsCount: gazPeriods.length
-    });
+      ...gpGaz,
+      ...gpElec,
+      ...gpInternet,
+      ...gpChaudiere,
+      ...gpCommunes
+    ].reduce((sum, p) => sum + p.montantAffiche, 0);
 
     setMontantGlobalAnnuel(total.toFixed(2));
     
@@ -264,37 +276,17 @@ export default function Calculateur({
     }));
   };
 
+  const gazPeriods = getProratedPeriodsForYear(chargesDetaillees.gaz || [], selectedYear);
+  const elecPeriods = getProratedPeriodsForYear(chargesDetaillees.electricite || [], selectedYear);
+  const internetPeriods = getProratedPeriodsForYear(chargesDetaillees.internet || [], selectedYear);
+  const chaudierePeriods = getProratedPeriodsForYear(chargesDetaillees.chaudiere || [], selectedYear);
+  const communesPeriods = getProratedPeriodsForYear(chargesDetaillees.communes || [], selectedYear);
 
-
-  // --- Filtrer et sommer les charges par catégorie pour l'année sélectionnée ---
-  const getPeriodsForYear = (periods: PeriodeCharge[]) => {
-    return periods.filter(p => {
-      let invoiceYear = -1;
-      if (p.id && p.id.startsWith('period-')) {
-        const tsStr = p.id.split('-')[1];
-        const ts = parseInt(tsStr);
-        if (!isNaN(ts)) {
-          invoiceYear = new Date(ts).getFullYear();
-        }
-      }
-      if (invoiceYear === -1 && p.dateDebut) {
-        invoiceYear = new Date(p.dateDebut).getFullYear();
-      }
-      return invoiceYear === selectedYear;
-    });
-  };
-
-  const gazPeriods = getPeriodsForYear(chargesDetaillees.gaz || []);
-  const elecPeriods = getPeriodsForYear(chargesDetaillees.electricite || []);
-  const internetPeriods = getPeriodsForYear(chargesDetaillees.internet || []);
-  const chaudierePeriods = getPeriodsForYear(chargesDetaillees.chaudiere || []);
-  const communesPeriods = getPeriodsForYear(chargesDetaillees.communes || []);
-
-  const totalGaz = gazPeriods.reduce((sum, p) => sum + p.montant, 0);
-  const totalElec = elecPeriods.reduce((sum, p) => sum + p.montant, 0);
-  const totalInternet = internetPeriods.reduce((sum, p) => sum + p.montant, 0);
-  const totalChaudiere = chaudierePeriods.reduce((sum, p) => sum + p.montant, 0);
-  const totalCommunes = communesPeriods.reduce((sum, p) => sum + p.montant, 0);
+  const totalGaz = gazPeriods.reduce((sum, p) => sum + p.montantAffiche, 0);
+  const totalElec = elecPeriods.reduce((sum, p) => sum + p.montantAffiche, 0);
+  const totalInternet = internetPeriods.reduce((sum, p) => sum + p.montantAffiche, 0);
+  const totalChaudiere = chaudierePeriods.reduce((sum, p) => sum + p.montantAffiche, 0);
+  const totalCommunes = communesPeriods.reduce((sum, p) => sum + p.montantAffiche, 0);
 
   return (
     <div className="animate-fade-in">
@@ -411,7 +403,9 @@ export default function Calculateur({
                 {gazPeriods.map(p => (
                   <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
                     <span>Du {new Date(p.dateDebut).toLocaleDateString('fr-FR')} au {new Date(p.dateFin).toLocaleDateString('fr-FR')}</span>
-                    <span style={{ fontWeight: 600 }}>{p.montant.toFixed(2)} €</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {p.isProrated ? `${p.montantAffiche.toFixed(2)} € (sur ${p.montant.toFixed(2)} €)` : `${p.montant.toFixed(2)} €`}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -444,7 +438,9 @@ export default function Calculateur({
                 {elecPeriods.map(p => (
                   <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
                     <span>Du {new Date(p.dateDebut).toLocaleDateString('fr-FR')} au {new Date(p.dateFin).toLocaleDateString('fr-FR')}</span>
-                    <span style={{ fontWeight: 600 }}>{p.montant.toFixed(2)} €</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {p.isProrated ? `${p.montantAffiche.toFixed(2)} € (sur ${p.montant.toFixed(2)} €)` : `${p.montant.toFixed(2)} €`}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -477,7 +473,9 @@ export default function Calculateur({
                 {internetPeriods.map(p => (
                   <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
                     <span>Du {new Date(p.dateDebut).toLocaleDateString('fr-FR')} au {new Date(p.dateFin).toLocaleDateString('fr-FR')}</span>
-                    <span style={{ fontWeight: 600 }}>{p.montant.toFixed(2)} €</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {p.isProrated ? `${p.montantAffiche.toFixed(2)} € (sur ${p.montant.toFixed(2)} €)` : `${p.montant.toFixed(2)} €`}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -511,7 +509,9 @@ export default function Calculateur({
                 {chaudierePeriods.map(p => (
                   <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
                     <span>Du {new Date(p.dateDebut).toLocaleDateString('fr-FR')} au {new Date(p.dateFin).toLocaleDateString('fr-FR')}</span>
-                    <span style={{ fontWeight: 600 }}>{p.montant.toFixed(2)} €</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {p.isProrated ? `${p.montantAffiche.toFixed(2)} € (sur ${p.montant.toFixed(2)} €)` : `${p.montant.toFixed(2)} €`}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -544,7 +544,9 @@ export default function Calculateur({
                 {communesPeriods.map(p => (
                   <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
                     <span>Du {new Date(p.dateDebut).toLocaleDateString('fr-FR')} au {new Date(p.dateFin).toLocaleDateString('fr-FR')}</span>
-                    <span style={{ fontWeight: 600 }}>{p.montant.toFixed(2)} €</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {p.isProrated ? `${p.montantAffiche.toFixed(2)} € (sur ${p.montant.toFixed(2)} €)` : `${p.montant.toFixed(2)} €`}
+                    </span>
                   </div>
                 ))}
               </div>
