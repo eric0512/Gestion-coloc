@@ -860,11 +860,7 @@ export default function App() {
 
         <div class="meta-info">
           <div class="info-block">
-            <h3>Colocataire</h3>
-            <div class="info-row" style="font-size: 15px; margin-bottom: 8px;">
-              <span class="info-label" style="font-weight: bold; color: #1e293b;">Nom complet :</span>
-              <span class="info-value" style="font-size: 18px; font-weight: 800; color: #6366f1;">${coloc.prenom} ${coloc.nom}</span>
-            </div>
+            <h3>${coloc.prenom} ${coloc.nom}</h3>
             ${coloc.telephone ? `
             <div class="info-row">
               <span class="info-label">Téléphone :</span>
