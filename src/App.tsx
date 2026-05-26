@@ -254,17 +254,24 @@ export default function App() {
 
     // Load detailed charges from localStorage
     const savedCharges = localStorage.getItem('coloc_charges_detaillees');
-    let chargesDetaillees: ChargesDetaillees = { gaz: [], electricite: [], autres: [], communes: [] };
+    let chargesDetaillees: ChargesDetaillees = { gaz: [], electricite: [], internet: [], chaudiere: [], communes: [] };
     if (savedCharges) {
       try {
-        chargesDetaillees = JSON.parse(savedCharges);
+        const parsed = JSON.parse(savedCharges);
+        if (parsed.autres && !parsed.internet) {
+          parsed.internet = parsed.autres;
+          delete parsed.autres;
+        }
+        if (!parsed.chaudiere) parsed.chaudiere = [];
+        chargesDetaillees = parsed;
       } catch (e) {}
     }
 
     const allPeriods = [
       ...(chargesDetaillees.gaz || []),
       ...(chargesDetaillees.electricite || []),
-      ...(chargesDetaillees.autres || []),
+      ...(chargesDetaillees.internet || []),
+      ...(chargesDetaillees.chaudiere || []),
       ...(chargesDetaillees.communes || [])
     ];
 

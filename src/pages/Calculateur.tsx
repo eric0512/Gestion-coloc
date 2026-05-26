@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calculator, DollarSign, AlertCircle, Flame, Zap, Wifi, Trash2, X, Home } from 'lucide-react';
+import { Calculator, DollarSign, AlertCircle, Flame, Zap, Wifi, Trash2, X, Home, Wrench } from 'lucide-react';
 
 const NOMS_MOIS = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -16,7 +16,8 @@ export interface PeriodeCharge {
 export interface ChargesDetaillees {
   gaz: PeriodeCharge[];
   electricite: PeriodeCharge[];
-  autres: PeriodeCharge[];
+  internet: PeriodeCharge[];
+  chaudiere: PeriodeCharge[];
   communes: PeriodeCharge[];
 }
 
@@ -45,7 +46,14 @@ export default function Calculateur({
     const saved = localStorage.getItem('coloc_charges_detaillees');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Migration : si les anciennes données "autres" existent, les migrer vers "internet"
+        if (parsed.autres && !parsed.internet) {
+          parsed.internet = parsed.autres;
+          delete parsed.autres;
+        }
+        if (!parsed.chaudiere) parsed.chaudiere = [];
+        return parsed;
       } catch (e) {
         // fallback
       }
@@ -53,7 +61,8 @@ export default function Calculateur({
     return {
       gaz: [],
       electricite: [],
-      autres: [],
+      internet: [],
+      chaudiere: [],
       communes: []
     };
   });
@@ -64,11 +73,12 @@ export default function Calculateur({
   const getInvoicesForMonth = (m: number, year: number) => {
     const results: { category: string; dateDebut: string; dateFin: string; montant: number; id: string }[] = [];
     
-    const categories: ('gaz' | 'electricite' | 'autres' | 'communes')[] = ['gaz', 'electricite', 'autres', 'communes'];
+    const categories: ('gaz' | 'electricite' | 'internet' | 'chaudiere' | 'communes')[] = ['gaz', 'electricite', 'internet', 'chaudiere', 'communes'];
     const labels = {
       gaz: '🔥 Gaz',
       electricite: '⚡ Électricité',
-      autres: '🌐 Autres Charges',
+      internet: '🌐 Internet',
+      chaudiere: '🔧 Révision Chaudière',
       communes: '🏠 Charges communes'
     };
     
@@ -117,7 +127,7 @@ export default function Calculateur({
 
   // --- États Modals ---
   const [showChargeModal, setShowChargeModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<'gaz' | 'electricite' | 'autres' | 'communes' | ''>('');
+  const [selectedCategory, setSelectedCategory] = useState<'gaz' | 'electricite' | 'internet' | 'chaudiere' | 'communes' | ''>('');
 
   // --- États Formulaire de Période ---
   const [newPeriodStart, setNewPeriodStart] = useState('');
@@ -173,7 +183,8 @@ export default function Calculateur({
     const total = [
       ...getPeriodsForYear(chargesDetaillees.gaz || []),
       ...getPeriodsForYear(chargesDetaillees.electricite || []),
-      ...getPeriodsForYear(chargesDetaillees.autres || []),
+      ...getPeriodsForYear(chargesDetaillees.internet || []),
+      ...getPeriodsForYear(chargesDetaillees.chaudiere || []),
       ...getPeriodsForYear(chargesDetaillees.communes || [])
     ].reduce((sum, p) => sum + p.montant, 0);
 
@@ -192,7 +203,7 @@ export default function Calculateur({
   }, [chargesDetaillees, selectedYear, setMontantGlobalAnnuel, onTriggerSync]);
 
   const handleCategorySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const cat = e.target.value as 'gaz' | 'electricite' | 'autres' | 'communes' | '';
+    const cat = e.target.value as 'gaz' | 'electricite' | 'internet' | 'chaudiere' | 'communes' | '';
     if (cat) {
       setSelectedCategory(cat);
       setShowChargeModal(true);
@@ -275,12 +286,14 @@ export default function Calculateur({
 
   const gazPeriods = getPeriodsForYear(chargesDetaillees.gaz || []);
   const elecPeriods = getPeriodsForYear(chargesDetaillees.electricite || []);
-  const autresPeriods = getPeriodsForYear(chargesDetaillees.autres || []);
+  const internetPeriods = getPeriodsForYear(chargesDetaillees.internet || []);
+  const chaudierePeriods = getPeriodsForYear(chargesDetaillees.chaudiere || []);
   const communesPeriods = getPeriodsForYear(chargesDetaillees.communes || []);
 
   const totalGaz = gazPeriods.reduce((sum, p) => sum + p.montant, 0);
   const totalElec = elecPeriods.reduce((sum, p) => sum + p.montant, 0);
-  const totalAutres = autresPeriods.reduce((sum, p) => sum + p.montant, 0);
+  const totalInternet = internetPeriods.reduce((sum, p) => sum + p.montant, 0);
+  const totalChaudiere = chaudierePeriods.reduce((sum, p) => sum + p.montant, 0);
   const totalCommunes = communesPeriods.reduce((sum, p) => sum + p.montant, 0);
 
   return (
@@ -340,7 +353,7 @@ export default function Calculateur({
             <input 
               type="text" 
               className="input-field" 
-              value={`${(totalGaz + totalElec + totalAutres + totalCommunes).toFixed(2)} €`}
+              value={`${(totalGaz + totalElec + totalInternet + totalChaudiere + totalCommunes).toFixed(2)} €`}
               disabled
               style={{ fontWeight: 'bold', color: 'var(--primary)', backgroundColor: 'var(--input-bg)' }}
             />
@@ -357,7 +370,8 @@ export default function Calculateur({
             <option value="" disabled>-- Choisir une catégorie --</option>
             <option value="gaz">🔥 Gaz</option>
             <option value="electricite">⚡ Électricité</option>
-            <option value="autres">🌐 Autres Charges (Internet/Chaudiere)</option>
+            <option value="internet">🌐 Internet</option>
+            <option value="chaudiere">🔧 Révision Chaudière</option>
             <option value="communes">🏠 Charges communes</option>
           </select>
         </div>
@@ -441,7 +455,7 @@ export default function Calculateur({
             )}
           </div>
 
-          {/* Autres */}
+          {/* Internet */}
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -452,15 +466,15 @@ export default function Calculateur({
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
-                <span>🌐 Autres charges</span>
+                <span>🌐 Internet</span>
               </div>
               <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>
-                {totalAutres.toFixed(2)} €
+                {totalInternet.toFixed(2)} €
               </span>
             </div>
-            {autresPeriods.length > 0 ? (
+            {internetPeriods.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px', borderTop: '1px dashed var(--border-color)', paddingTop: '8px' }}>
-                {autresPeriods.map(p => (
+                {internetPeriods.map(p => (
                   <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
                     <span>Du {new Date(p.dateDebut).toLocaleDateString('fr-FR')} au {new Date(p.dateFin).toLocaleDateString('fr-FR')}</span>
                     <span style={{ fontWeight: 600 }}>{p.montant.toFixed(2)} €</span>
@@ -469,7 +483,41 @@ export default function Calculateur({
               </div>
             ) : (
               <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>
-                Aucune autre charge saisie pour {selectedYear}
+                Aucune charge internet saisie pour {selectedYear}
+              </span>
+            )}
+          </div>
+
+          {/* Révision Chaudière */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '12px',
+            backgroundColor: 'var(--input-bg)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-md)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                <Wrench size={16} style={{ color: '#f97316' }} />
+                <span>🔧 Révision Chaudière</span>
+              </div>
+              <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>
+                {totalChaudiere.toFixed(2)} €
+              </span>
+            </div>
+            {chaudierePeriods.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px', borderTop: '1px dashed var(--border-color)', paddingTop: '8px' }}>
+                {chaudierePeriods.map(p => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    <span>Du {new Date(p.dateDebut).toLocaleDateString('fr-FR')} au {new Date(p.dateFin).toLocaleDateString('fr-FR')}</span>
+                    <span style={{ fontWeight: 600 }}>{p.montant.toFixed(2)} €</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>
+                Aucune charge de révision chaudière saisie pour {selectedYear}
               </span>
             )}
           </div>
@@ -517,12 +565,14 @@ export default function Calculateur({
               <div className="modal-title">
                 {selectedCategory === 'gaz' && <Flame size={18} style={{ color: '#ef4444' }} />}
                 {selectedCategory === 'electricite' && <Zap size={18} style={{ color: '#eab308' }} />}
-                {selectedCategory === 'autres' && <Wifi size={18} style={{ color: '#06b6d4' }} />}
+                {selectedCategory === 'internet' && <Wifi size={18} style={{ color: '#06b6d4' }} />}
+                {selectedCategory === 'chaudiere' && <Wrench size={18} style={{ color: '#f97316' }} />}
                 {selectedCategory === 'communes' && <Home size={18} style={{ color: '#10b981' }} />}
                 <span style={{ marginLeft: '4px' }}>
                   {selectedCategory === 'gaz' && 'Saisie du Gaz'}
                   {selectedCategory === 'electricite' && 'Saisie de l\'Électricité'}
-                  {selectedCategory === 'autres' && 'Saisie des Autres Charges'}
+                  {selectedCategory === 'internet' && 'Saisie d\'Internet'}
+                  {selectedCategory === 'chaudiere' && 'Saisie de la Révision Chaudière'}
                   {selectedCategory === 'communes' && 'Saisie des Charges communes'}
                 </span>
               </div>
