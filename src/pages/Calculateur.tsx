@@ -6,14 +6,14 @@ const NOMS_MOIS = [
   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
 ];
 
-interface PeriodeCharge {
+export interface PeriodeCharge {
   id: string;
   dateDebut: string;
   dateFin: string;
   montant: number;
 }
 
-interface ChargesDetaillees {
+export interface ChargesDetaillees {
   gaz: PeriodeCharge[];
   electricite: PeriodeCharge[];
   autres: PeriodeCharge[];
