@@ -916,6 +916,7 @@ export default function App() {
               <th style="text-align: center;">Présence</th>
               <th style="text-align: right;">Loyer dû</th>
               <th style="text-align: right;">Avance charges</th>
+              <th style="text-align: right;">Loyer avec charges</th>
               <th style="text-align: right;">Charges réelles</th>
               <th style="text-align: right;">Total mensuel (Dû)</th>
             </tr>
@@ -927,6 +928,7 @@ export default function App() {
                 <td style="text-align: center;">${line.joursPresence} j / ${line.daysInMonth}</td>
                 <td style="text-align: right; font-weight: 500;">${line.loyerDu.toFixed(2)} €</td>
                 <td style="text-align: right; color: #475569;">${line.avanceDue.toFixed(2)} €</td>
+                <td style="text-align: right; font-weight: 600; color: #0f172a;">${(line.loyerDu + line.avanceDue).toFixed(2)} €</td>
                 <td style="text-align: right; color: #475569;">${line.chargeDue.toFixed(2)} €</td>
                 <td style="text-align: right; font-weight: 600; color: #6366f1;">${line.totalMensuel.toFixed(2)} €</td>
               </tr>
@@ -936,6 +938,7 @@ export default function App() {
               <td style="text-align: center;">-</td>
               <td style="text-align: right;">${totalLoyer.toFixed(2)} €</td>
               <td style="text-align: right; font-weight: normal; color: #475569;">${totalAvances.toFixed(2)} €</td>
+              <td style="text-align: right; font-weight: bold; color: #0f172a;">${(totalLoyer + totalAvances).toFixed(2)} €</td>
               <td style="text-align: right; font-weight: normal; color: #475569;">${totalCharges.toFixed(2)} €</td>
               <td style="text-align: right; color: #6366f1;">${totalGeneral.toFixed(2)} €</td>
             </tr>
