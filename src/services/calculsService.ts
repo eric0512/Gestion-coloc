@@ -1,0 +1,212 @@
+import type { Colocataire } from '../pages/Colocataires';
+import type { ChargesDetaillees } from '../pages/Calculateur';
+
+export interface RoommateBill {
+  colocId: string;
+  nomComplet: string;
+  joursPresence: number;
+  totalDuReel: number;
+  totalAvancesPayees: number;
+  solde: number;
+}
+
+/**
+ * Calcule le nombre de jours inclusifs entre deux dates au format YYYY-MM-DD
+ */
+export function getDaysBetween(startDateStr: string, endDateStr: string): number {
+  const start = new Date(startDateStr);
+  const end = new Date(endDateStr);
+  const diffTime = Math.max(0, end.getTime() - start.getTime());
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+}
+
+/**
+ * Détermine si une année est bissextile (366 jours) ou non (365 jours)
+ */
+export function isLeapYear(year: number): boolean {
+  return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+}
+
+/**
+ * Détermine le coût journalier d'une catégorie de charge pour un jour donné.
+ * Si une facture réelle existe pour ce jour, elle est utilisée.
+ * Sinon, elle est estimée par projection linéaire de la facture la plus proche,
+ * ou par un tarif par défaut historique en dernier recours.
+ */
+export function getDailyCostEstimation(
+  typeCharge: keyof ChargesDetaillees,
+  targetDateStr: string,
+  chargesDetaillees: ChargesDetaillees
+): { cost: number; isEstimated: boolean } {
+  const periods = chargesDetaillees[typeCharge] || [];
+
+  // 1. Recherche d'une facture réelle couvrant cette journée précise
+  const realPeriod = periods.find(p => 
+    targetDateStr >= p.dateDebut && 
+    targetDateStr <= p.dateFin
+  );
+
+  if (realPeriod) {
+    const totalDays = getDaysBetween(realPeriod.dateDebut, realPeriod.dateFin);
+    return {
+      cost: totalDays > 0 ? realPeriod.montant / totalDays : 0,
+      isEstimated: false
+    };
+  }
+
+  // 2. Mode Estimation : Projection sur la base de la facture réelle la plus récente
+  const sortedPeriods = [...periods]
+    .sort((a, b) => b.dateFin.localeCompare(a.dateFin)); // Plus récente d'abord
+
+  if (sortedPeriods.length > 0) {
+    const latestPeriod = sortedPeriods[0];
+    const totalDays = getDaysBetween(latestPeriod.dateDebut, latestPeriod.dateFin);
+    return {
+      cost: totalDays > 0 ? latestPeriod.montant / totalDays : 0,
+      isEstimated: true
+    };
+  }
+
+  // 3. Fallback ultime si aucune facture historique n'est encore saisie dans l'application
+  const DEFAULT_DAILY_COSTS: Record<keyof ChargesDetaillees, number> = {
+    gaz: 4.0,         // ex: ~120€ / mois
+    electricite: 3.0,  // ex: ~90€ / mois
+    internet: 1.3,     // ex: ~40€ / mois
+    chaudiere: 0.0,    // Révision chaudière = dépense ponctuelle, estimée à 0.0 par jour
+    communes: 2.0      // ex: ~60€ / mois
+  };
+
+  return {
+    cost: DEFAULT_DAILY_COSTS[typeCharge] || 0,
+    isEstimated: true
+  };
+}
+
+/**
+ * Calcule l'intégralité du bilan annuel pour une année cible.
+ * Parcourt les 365/366 jours de l'année, vérifie les colocataires présents à chaque jour d'intersection
+ * et répartit le coût journalier estimé ou réel au prorata exact de leur présence.
+ */
+export function genererBilanAnnuel(
+  anneeTarget: number,
+  colocataires: Colocataire[],
+  chargesDetaillees: ChargesDetaillees
+): {
+  bilans: RoommateBill[];
+  isCloturable: boolean;
+  joursCouvertsSet: Record<keyof ChargesDetaillees, number>;
+  totalDays: number;
+} {
+  const startYearStr = `${anneeTarget}-01-01`;
+  const endYearStr = `${anneeTarget}-12-31`;
+  
+  const startYear = new Date(startYearStr);
+  const endYear = new Date(endYearStr);
+  const totalDays = isLeapYear(anneeTarget) ? 366 : 365;
+
+  // Initialisation des structures de cumul des comptes
+  const mappingCalcul: Record<string, { totalDu: number; jours: number; nom: string; avanceMensuelle: number }> = {};
+  colocataires.forEach(c => {
+    mappingCalcul[c.id] = {
+      totalDu: 0,
+      jours: 0,
+      nom: `${c.prenom} ${c.nom}`,
+      avanceMensuelle: c.avanceCharge !== undefined ? c.avanceCharge : 150
+    };
+  });
+
+  // Pour suivre la couverture par factures réelles jour après jour
+  const categoriesSuivies: Array<keyof ChargesDetaillees> = ['gaz', 'electricite', 'internet', 'communes'];
+  const joursCouvertsUnique: Record<keyof ChargesDetaillees, Set<string>> = {
+    gaz: new Set<string>(),
+    electricite: new Set<string>(),
+    internet: new Set<string>(),
+    chaudiere: new Set<string>(),
+    communes: new Set<string>()
+  };
+
+  // Parcourir chaque jour de l'année
+  const currentDate = new Date(startYear.getTime());
+  while (currentDate <= endYear) {
+    const y = currentDate.getFullYear();
+    const m = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const d = String(currentDate.getDate()).padStart(2, '0');
+    const currentDateStr = `${y}-${m}-${d}`;
+
+    // 1. Colocataires présents ce jour-là
+    const colocsPresents = colocataires.filter(c => {
+      const entry = c.dateEntree;
+      const exit = c.dateSortie || '9999-12-31';
+      return currentDateStr >= entry && currentDateStr <= exit;
+    });
+
+    const numPresents = colocsPresents.length;
+
+    if (numPresents > 0) {
+      // 2. Évaluer le coût journalier pour chaque type de charge
+      const categories: Array<keyof ChargesDetaillees> = ['gaz', 'electricite', 'internet', 'chaudiere', 'communes'];
+      
+      categories.forEach(type => {
+        const { cost, isEstimated } = getDailyCostEstimation(type, currentDateStr, chargesDetaillees);
+        
+        // Si c'est une facture réelle couvrant le jour, on l'ajoute au set de couverture unique
+        if (!isEstimated) {
+          joursCouvertsUnique[type].add(currentDateStr);
+        }
+
+        // Répartir le coût du jour entre les colocataires présents
+        const costPerPerson = cost / numPresents;
+        colocsPresents.forEach(c => {
+          mappingCalcul[c.id].totalDu += costPerPerson;
+          
+          // Suivi des jours de présence globale (utilisons 'gaz' comme référence unique)
+          if (type === 'gaz') {
+            mappingCalcul[c.id].jours += 1;
+          }
+        });
+      });
+    }
+
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  // 3. Clôture autorisée si toutes les charges continues couvrent 100% de l'année (365/366 jours)
+  // Note : 'chaudiere' est exclu car c'est une dépense ponctuelle (non continue)
+  const isCloturable = categoriesSuivies.every(
+    type => joursCouvertsUnique[type].size >= totalDays
+  );
+
+  // 4. Formater les résultats individuels
+  const bilans: RoommateBill[] = Object.keys(mappingCalcul).map(colocId => {
+    const data = mappingCalcul[colocId];
+    
+    // Proratisation des avances mensuelles : (jours de présence / jours moyens par mois) * avance charge mensuelle
+    const totalAvancesPayees = Math.round(((data.jours / 30.4375) * data.avanceMensuelle) * 100) / 100;
+    const totalDuReel = Math.round(data.totalDu * 100) / 100;
+    const solde = Math.round((totalDuReel - totalAvancesPayees) * 100) / 100;
+
+    return {
+      colocId,
+      nomComplet: data.nom,
+      joursPresence: data.jours,
+      totalDuReel,
+      totalAvancesPayees,
+      solde
+    };
+  });
+
+  const joursCouvertsSet: Record<keyof ChargesDetaillees, number> = {
+    gaz: joursCouvertsUnique.gaz.size,
+    electricite: joursCouvertsUnique.electricite.size,
+    internet: joursCouvertsUnique.internet.size,
+    chaudiere: joursCouvertsUnique.chaudiere.size,
+    communes: joursCouvertsUnique.communes.size
+  };
+
+  return {
+    bilans,
+    isCloturable,
+    joursCouvertsSet,
+    totalDays
+  };
+}
