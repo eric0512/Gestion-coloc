@@ -159,25 +159,69 @@ export default function Calculateur({
     return '';
   };
 
-  const getProratedPeriodsForYear = (periods: PeriodeCharge[], year: number) => {
+  const getProratedPeriodsForYear = (periods: PeriodeCharge[], year: number, categoryKey: string) => {
     const yearStartStr = `${year}-01-01`;
     const yearEndStr = `${year}-12-31`;
 
     return periods
       .filter(p => p.dateDebut <= yearEndStr && p.dateFin >= yearStartStr)
       .map(p => {
-        const start = new Date(p.dateDebut);
+        // Somme des poids sur toute la période
+        let totalWeight = 0;
+        const current = new Date(p.dateDebut);
         const end = new Date(p.dateFin);
-        const diffTime = Math.max(0, end.getTime() - start.getTime());
-        const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-        const costPerDay = totalDays > 0 ? p.montant / totalDays : 0;
+        while (current <= end) {
+          const y = current.getFullYear();
+          const m = String(current.getMonth() + 1).padStart(2, '0');
+          const d = String(current.getDate()).padStart(2, '0');
+          const currentDateStr = `${y}-${m}-${d}`;
+          
+          let weight = 1.0;
+          const dateObj = new Date(currentDateStr);
+          const month = dateObj.getMonth() + 1;
+          const isSummer = month >= 5 && month <= 10;
+          if (isSummer) {
+            if (categoryKey === 'gaz') weight = 0.2;
+            else if (categoryKey === 'electricite') weight = 0.7;
+          }
+          totalWeight += weight;
+          current.setDate(current.getDate() + 1);
+        }
 
-        const overlapStart = new Date(p.dateDebut > yearStartStr ? p.dateDebut : yearStartStr);
-        const overlapEnd = new Date(p.dateFin < yearEndStr ? p.dateFin : yearEndStr);
-        const overlapTime = Math.max(0, overlapEnd.getTime() - overlapStart.getTime());
-        const overlapDays = Math.ceil(overlapTime / (1000 * 60 * 60 * 24)) + 1;
+        const baseDailyCost = totalWeight > 0 ? p.montant / totalWeight : 0;
 
-        const proratedAmount = overlapDays * costPerDay;
+        const overlapStart = p.dateDebut > yearStartStr ? p.dateDebut : yearStartStr;
+        const overlapEnd = p.dateFin < yearEndStr ? p.dateFin : yearEndStr;
+
+        let proratedAmount = 0;
+        let overlapDays = 0;
+
+        if (overlapStart <= overlapEnd) {
+          const currentInt = new Date(overlapStart);
+          const limitInt = new Date(overlapEnd);
+          while (currentInt <= limitInt) {
+            const y = currentInt.getFullYear();
+            const m = String(currentInt.getMonth() + 1).padStart(2, '0');
+            const d = String(currentInt.getDate()).padStart(2, '0');
+            const currentDateStr = `${y}-${m}-${d}`;
+            
+            let weight = 1.0;
+            const dateObj = new Date(currentDateStr);
+            const month = dateObj.getMonth() + 1;
+            const isSummer = month >= 5 && month <= 10;
+            if (isSummer) {
+              if (categoryKey === 'gaz') weight = 0.2;
+              else if (categoryKey === 'electricite') weight = 0.7;
+            }
+            proratedAmount += baseDailyCost * weight;
+            overlapDays++;
+            currentInt.setDate(currentInt.getDate() + 1);
+          }
+        }
+
+        const startD = new Date(p.dateDebut);
+        const endD = new Date(p.dateFin);
+        const totalDays = Math.ceil((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
         return {
           ...p,
@@ -193,11 +237,11 @@ export default function Calculateur({
   useEffect(() => {
     localStorage.setItem('coloc_charges_detaillees', JSON.stringify(chargesDetaillees));
     
-    const gpGaz = getProratedPeriodsForYear(chargesDetaillees.gaz || [], selectedYear);
-    const gpElec = getProratedPeriodsForYear(chargesDetaillees.electricite || [], selectedYear);
-    const gpInternet = getProratedPeriodsForYear(chargesDetaillees.internet || [], selectedYear);
-    const gpChaudiere = getProratedPeriodsForYear(chargesDetaillees.chaudiere || [], selectedYear);
-    const gpCommunes = getProratedPeriodsForYear(chargesDetaillees.communes || [], selectedYear);
+    const gpGaz = getProratedPeriodsForYear(chargesDetaillees.gaz || [], selectedYear, 'gaz');
+    const gpElec = getProratedPeriodsForYear(chargesDetaillees.electricite || [], selectedYear, 'electricite');
+    const gpInternet = getProratedPeriodsForYear(chargesDetaillees.internet || [], selectedYear, 'internet');
+    const gpChaudiere = getProratedPeriodsForYear(chargesDetaillees.chaudiere || [], selectedYear, 'chaudiere');
+    const gpCommunes = getProratedPeriodsForYear(chargesDetaillees.communes || [], selectedYear, 'communes');
 
     const total = [
       ...gpGaz,
@@ -276,11 +320,11 @@ export default function Calculateur({
     }));
   };
 
-  const gazPeriods = getProratedPeriodsForYear(chargesDetaillees.gaz || [], selectedYear);
-  const elecPeriods = getProratedPeriodsForYear(chargesDetaillees.electricite || [], selectedYear);
-  const internetPeriods = getProratedPeriodsForYear(chargesDetaillees.internet || [], selectedYear);
-  const chaudierePeriods = getProratedPeriodsForYear(chargesDetaillees.chaudiere || [], selectedYear);
-  const communesPeriods = getProratedPeriodsForYear(chargesDetaillees.communes || [], selectedYear);
+  const gazPeriods = getProratedPeriodsForYear(chargesDetaillees.gaz || [], selectedYear, 'gaz');
+  const elecPeriods = getProratedPeriodsForYear(chargesDetaillees.electricite || [], selectedYear, 'electricite');
+  const internetPeriods = getProratedPeriodsForYear(chargesDetaillees.internet || [], selectedYear, 'internet');
+  const chaudierePeriods = getProratedPeriodsForYear(chargesDetaillees.chaudiere || [], selectedYear, 'chaudiere');
+  const communesPeriods = getProratedPeriodsForYear(chargesDetaillees.communes || [], selectedYear, 'communes');
 
   const totalGaz = gazPeriods.reduce((sum, p) => sum + p.montantAffiche, 0);
   const totalElec = elecPeriods.reduce((sum, p) => sum + p.montantAffiche, 0);

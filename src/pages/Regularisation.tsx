@@ -74,12 +74,29 @@ export default function Regularisation({
     const yearEndStr = `${selectedYear}-12-31`;
 
     periods.forEach(p => {
-      const start = new Date(p.dateDebut);
+      // Somme des poids sur toute la période
+      let totalWeight = 0;
+      const current = new Date(p.dateDebut);
       const end = new Date(p.dateFin);
-      const diffTime = Math.max(0, end.getTime() - start.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-      
-      const costPerDay = diffDays > 0 ? p.montant / diffDays : 0;
+      while (current <= end) {
+        const y = current.getFullYear();
+        const m = String(current.getMonth() + 1).padStart(2, '0');
+        const d = String(current.getDate()).padStart(2, '0');
+        const currentDateStr = `${y}-${m}-${d}`;
+        
+        let weight = 1.0;
+        const dateObj = new Date(currentDateStr);
+        const month = dateObj.getMonth() + 1;
+        const isSummer = month >= 5 && month <= 10;
+        if (isSummer) {
+          if (categoryKey === 'gaz') weight = 0.2;
+          else if (categoryKey === 'electricite') weight = 0.7;
+        }
+        totalWeight += weight;
+        current.setDate(current.getDate() + 1);
+      }
+
+      const baseDailyCost = totalWeight > 0 ? p.montant / totalWeight : 0;
 
       // Date_Début_Intersection = Maximum(Date_Début_Charge, 01/01/N)
       const startDateIntersection = p.dateDebut > yearStartStr ? p.dateDebut : yearStartStr;
@@ -88,23 +105,26 @@ export default function Regularisation({
       const endDateIntersection = p.dateFin < yearEndStr ? p.dateFin : yearEndStr;
 
       if (startDateIntersection <= endDateIntersection) {
-        const startInt = new Date(startDateIntersection);
-        const endInt = new Date(endDateIntersection);
-        const intTime = Math.max(0, endInt.getTime() - startInt.getTime());
-        const joursImpactes = Math.ceil(intTime / (1000 * 60 * 60 * 24)) + 1;
-
-        // Calculer la Part_Charge_N
-        partChargeN += costPerDay * joursImpactes;
-
-        // Suivi de la couverture journalière (jours uniques)
-        const current = new Date(startDateIntersection);
-        const limit = new Date(endDateIntersection);
-        while (current <= limit) {
-          const y = current.getFullYear();
-          const m = String(current.getMonth() + 1).padStart(2, '0');
-          const d = String(current.getDate()).padStart(2, '0');
-          coveredDaysSet.add(`${y}-${m}-${d}`);
-          current.setDate(current.getDate() + 1);
+        const currentInt = new Date(startDateIntersection);
+        const limitInt = new Date(endDateIntersection);
+        while (currentInt <= limitInt) {
+          const y = currentInt.getFullYear();
+          const m = String(currentInt.getMonth() + 1).padStart(2, '0');
+          const d = String(currentInt.getDate()).padStart(2, '0');
+          const currentDateStr = `${y}-${m}-${d}`;
+          
+          let weight = 1.0;
+          const dateObj = new Date(currentDateStr);
+          const month = dateObj.getMonth() + 1;
+          const isSummer = month >= 5 && month <= 10;
+          if (isSummer) {
+            if (categoryKey === 'gaz') weight = 0.2;
+            else if (categoryKey === 'electricite') weight = 0.7;
+          }
+          partChargeN += baseDailyCost * weight;
+          coveredDaysSet.add(currentDateStr);
+          
+          currentInt.setDate(currentInt.getDate() + 1);
         }
       }
     });

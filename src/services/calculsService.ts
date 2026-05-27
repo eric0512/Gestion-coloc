@@ -28,6 +28,50 @@ export function isLeapYear(year: number): boolean {
 }
 
 /**
+ * Retourne le coefficient de pondération saisonnière d'une date pour une catégorie donnée.
+ * Période sans chauffage : Mai (mois 5) à Octobre (mois 10) inclus.
+ */
+export function getSeasonalWeight(typeCharge: keyof ChargesDetaillees, dateStr: string): number {
+  const date = new Date(dateStr);
+  const month = date.getMonth() + 1; // 1-12
+  const isSummer = month >= 5 && month <= 10; // Mai à Octobre
+
+  if (isSummer) {
+    if (typeCharge === 'gaz') {
+      return 0.2; // Abattement de 80% (le coût vaut 20% d'un jour d'hiver)
+    }
+    if (typeCharge === 'electricite') {
+      return 0.7; // Abattement de 30% (le coût vaut 70% d'un jour d'hiver)
+    }
+  }
+  return 1.0;
+}
+
+/**
+ * Calcule la somme des poids saisonniers pour tous les jours d'une période donnée.
+ */
+export function getPeriodTotalWeight(
+  typeCharge: keyof ChargesDetaillees,
+  startDateStr: string,
+  endDateStr: string
+): number {
+  let totalWeight = 0;
+  const current = new Date(startDateStr);
+  const end = new Date(endDateStr);
+  
+  while (current <= end) {
+    const y = current.getFullYear();
+    const m = String(current.getMonth() + 1).padStart(2, '0');
+    const d = String(current.getDate()).padStart(2, '0');
+    const currentDateStr = `${y}-${m}-${d}`;
+    
+    totalWeight += getSeasonalWeight(typeCharge, currentDateStr);
+    current.setDate(current.getDate() + 1);
+  }
+  return totalWeight;
+}
+
+/**
  * Détermine le coût journalier d'une catégorie de charge pour un jour donné.
  * Si une facture réelle existe pour ce jour, elle est utilisée.
  * Sinon, elle est estimée par projection linéaire de la facture la plus proche,
@@ -47,9 +91,10 @@ export function getDailyCostEstimation(
   );
 
   if (realPeriod) {
-    const totalDays = getDaysBetween(realPeriod.dateDebut, realPeriod.dateFin);
+    const totalWeight = getPeriodTotalWeight(typeCharge, realPeriod.dateDebut, realPeriod.dateFin);
+    const dayWeight = getSeasonalWeight(typeCharge, targetDateStr);
     return {
-      cost: totalDays > 0 ? realPeriod.montant / totalDays : 0,
+      cost: totalWeight > 0 ? (realPeriod.montant * dayWeight) / totalWeight : 0,
       isEstimated: false
     };
   }
@@ -60,9 +105,11 @@ export function getDailyCostEstimation(
 
   if (sortedPeriods.length > 0) {
     const latestPeriod = sortedPeriods[0];
-    const totalDays = getDaysBetween(latestPeriod.dateDebut, latestPeriod.dateFin);
+    const totalWeight = getPeriodTotalWeight(typeCharge, latestPeriod.dateDebut, latestPeriod.dateFin);
+    const baseWinterDailyCost = totalWeight > 0 ? latestPeriod.montant / totalWeight : 0;
+    const dayWeight = getSeasonalWeight(typeCharge, targetDateStr);
     return {
-      cost: totalDays > 0 ? latestPeriod.montant / totalDays : 0,
+      cost: baseWinterDailyCost * dayWeight,
       isEstimated: true
     };
   }
@@ -76,8 +123,10 @@ export function getDailyCostEstimation(
     communes: 2.0      // ex: ~60€ / mois
   };
 
+  const baseCost = DEFAULT_DAILY_COSTS[typeCharge] || 0;
+  const dayWeight = getSeasonalWeight(typeCharge, targetDateStr);
   return {
-    cost: DEFAULT_DAILY_COSTS[typeCharge] || 0,
+    cost: baseCost * dayWeight,
     isEstimated: true
   };
 }

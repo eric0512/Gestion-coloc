@@ -270,11 +270,11 @@ export default function App() {
     }
 
     const allPeriods = [
-      ...(chargesDetaillees.gaz || []),
-      ...(chargesDetaillees.electricite || []),
-      ...(chargesDetaillees.internet || []),
-      ...(chargesDetaillees.chaudiere || []),
-      ...(chargesDetaillees.communes || [])
+      ...(chargesDetaillees.gaz || []).map(p => ({ ...p, category: 'gaz' })),
+      ...(chargesDetaillees.electricite || []).map(p => ({ ...p, category: 'electricite' })),
+      ...(chargesDetaillees.internet || []).map(p => ({ ...p, category: 'internet' })),
+      ...(chargesDetaillees.chaudiere || []).map(p => ({ ...p, category: 'chaudiere' })),
+      ...(chargesDetaillees.communes || []).map(p => ({ ...p, category: 'communes' }))
     ];
 
     const formatDateString = (d: Date) => {
@@ -298,16 +298,35 @@ export default function App() {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
 
-    // Calculate cost per day for each period
+    // Calculate cost per day for each period based on seasonal weighting
     const activePeriods = allPeriods.map(p => {
-      const start = new Date(p.dateDebut);
+      let totalWeight = 0;
+      const current = new Date(p.dateDebut);
       const end = new Date(p.dateFin);
-      const diffTime = Math.max(0, end.getTime() - start.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-      const costPerDay = diffDays > 0 ? p.montant / diffDays : 0;
+      while (current <= end) {
+        const y = current.getFullYear();
+        const m = String(current.getMonth() + 1).padStart(2, '0');
+        const d = String(current.getDate()).padStart(2, '0');
+        const currentDateStr = `${y}-${m}-${d}`;
+        
+        let weight = 1.0;
+        const dateObj = new Date(currentDateStr);
+        const month = dateObj.getMonth() + 1; // 1-12
+        const isSummer = month >= 5 && month <= 10; // Mai à Octobre
+
+        if (isSummer) {
+          if (p.category === 'gaz') weight = 0.2;
+          else if (p.category === 'electricite') weight = 0.7;
+        }
+
+        totalWeight += weight;
+        current.setDate(current.getDate() + 1);
+      }
+
+      const baseDailyCost = totalWeight > 0 ? p.montant / totalWeight : 0;
       return {
         ...p,
-        costPerDay,
+        baseDailyCost,
         startDate: p.dateDebut,
         endDate: p.dateFin
       };
@@ -383,7 +402,16 @@ export default function App() {
         if (currentDate > limitEndDate) continue;
 
         const activePeriodsOnDay = activePeriods.filter(p => currentDateStr >= p.startDate && currentDateStr <= p.endDate);
-        const costOnDay = activePeriodsOnDay.reduce((sum, p) => sum + p.costPerDay, 0);
+        const costOnDay = activePeriodsOnDay.reduce((sum, p) => {
+          let weight = 1.0;
+          const month = currentDate.getMonth() + 1; // 1-12
+          const isSummer = month >= 5 && month <= 10;
+          if (isSummer) {
+            if (p.category === 'gaz') weight = 0.2;
+            else if (p.category === 'electricite') weight = 0.7;
+          }
+          return sum + p.baseDailyCost * weight;
+        }, 0);
 
         const presentColocs = dailyPresence[day] || [];
         if (presentColocs.length > 0 && costOnDay > 0) {
@@ -407,7 +435,16 @@ export default function App() {
         const currentDateStr = formatDateString(currentDate);
         if (currentDate > limitEndDate) continue;
         const activePeriodsOnDay = activePeriods.filter(p => currentDateStr >= p.startDate && currentDateStr <= p.endDate);
-        monthlyBudgetReel += activePeriodsOnDay.reduce((sum, p) => sum + p.costPerDay, 0);
+        monthlyBudgetReel += activePeriodsOnDay.reduce((sum, p) => {
+          let weight = 1.0;
+          const month = currentDate.getMonth() + 1; // 1-12
+          const isSummer = month >= 5 && month <= 10;
+          if (isSummer) {
+            if (p.category === 'gaz') weight = 0.2;
+            else if (p.category === 'electricite') weight = 0.7;
+          }
+          return sum + p.baseDailyCost * weight;
+        }, 0);
       }
       monthlyBudgetReel = Math.round(monthlyBudgetReel * 100) / 100;
 
