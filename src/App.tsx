@@ -13,7 +13,8 @@ import {
   RefreshCw,
   X,
   AlertCircle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Printer
 } from 'lucide-react';
 
 import Accueil from './pages/Accueil';
@@ -111,6 +112,323 @@ export default function App() {
   // --- États Saisie des Charges Annuelles ---
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [montantGlobalAnnuel, setMontantGlobalAnnuel] = useState<string>('7200'); // 7200 € / an par défaut
+
+  // --- États & Handlers pour l'édition de quittances de loyer ---
+  const [quittanceYear, setQuittanceYear] = useState<number>(2026);
+  const [quittanceMonth, setQuittanceMonth] = useState<number>(new Date().getMonth());
+
+  const getActiveColocatairesForMonth = (year: number, monthIndex: number) => {
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    const startOfMonthStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`;
+    const endOfMonthStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${daysInMonth}`;
+
+    return colocataires.filter(coloc => {
+      const hasEntered = coloc.dateEntree <= endOfMonthStr;
+      const hasNotLeft = !coloc.dateSortie || coloc.dateSortie >= startOfMonthStr;
+      return hasEntered && hasNotLeft;
+    });
+  };
+
+  const handlePrintQuittance = (coloc: Colocataire, year: number, monthIndex: number) => {
+    const monthName = NOMS_MOIS[monthIndex];
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    
+    // Calculer les jours de présence
+    let presenceDays = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const currentDayStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const hasEntered = currentDayStr >= coloc.dateEntree;
+      const hasNotLeft = !coloc.dateSortie || currentDayStr <= coloc.dateSortie;
+      if (hasEntered && hasNotLeft) {
+        presenceDays++;
+      }
+    }
+
+    if (presenceDays === 0) return;
+
+    const rawLoyer = coloc.loyer !== undefined ? coloc.loyer : 0;
+    const rawCharges = coloc.avanceCharge !== undefined ? coloc.avanceCharge : 150;
+
+    let loyerDu = rawLoyer;
+    let chargesDue = rawCharges;
+
+    if (presenceDays < daysInMonth) {
+      loyerDu = Math.round((presenceDays * (rawLoyer / daysInMonth)) * 100) / 100;
+      chargesDue = Math.round((presenceDays * (rawCharges / daysInMonth)) * 100) / 100;
+    }
+
+    const totalDu = Math.round((loyerDu + chargesDue) * 100) / 100;
+    const generationDateStr = new Date().toLocaleDateString('fr-FR');
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Le bloqueur de fenêtres pop-up empêche l'ouverture de la quittance. Veuillez autoriser les pop-ups pour ce site.");
+      return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <title>Quittance de Loyer - ${coloc.prenom} ${coloc.nom}</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 40px;
+            font-size: 14px;
+            line-height: 1.6;
+          }
+          .container {
+            max-width: 700px;
+            margin: 0 auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .header-left h1 {
+            font-size: 24px;
+            color: #1d4ed8;
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .header-left p {
+            margin: 0;
+            color: #64748b;
+            font-size: 12px;
+          }
+          .header-right {
+            text-align: right;
+            font-size: 12px;
+            color: #475569;
+          }
+          .meta-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 35px;
+          }
+          .info-block {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+          }
+          .info-block h3 {
+            margin: 0 0 12px 0;
+            color: #1e293b;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 6px;
+          }
+          .info-block p {
+            margin: 4px 0;
+            color: #334155;
+          }
+          .declaration {
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 35px;
+            font-style: italic;
+            color: #1e3a8a;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 35px;
+          }
+          th {
+            background-color: #1d4ed8;
+            color: #ffffff;
+            font-weight: 600;
+            text-align: left;
+            padding: 12px;
+            font-size: 13px;
+            text-transform: uppercase;
+          }
+          td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #334155;
+          }
+          .total-row {
+            font-weight: 700;
+            background-color: #f1f5f9;
+          }
+          .total-row td {
+            border-bottom: 2px solid #cbd5e1;
+            border-top: 2px solid #cbd5e1;
+            color: #0f172a;
+            font-size: 15px;
+          }
+          .signature-section {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            page-break-inside: avoid;
+          }
+          .sig-box {
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            width: 250px;
+            height: 140px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          }
+          .sig-title {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: bold;
+            text-transform: uppercase;
+          }
+          .sig-line {
+            border-top: 1px solid #cbd5e1;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 11px;
+            color: #94a3b8;
+          }
+          .footer {
+            margin-top: 60px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 11px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+          }
+          .print-btn-container {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: flex-end;
+          }
+          .print-btn {
+            background-color: #1d4ed8;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.2s ease;
+          }
+          .print-btn:hover {
+            background-color: #1e40af;
+          }
+          @media print {
+            .print-btn-container {
+              display: none;
+            }
+            .container {
+              border: none;
+              box-shadow: none;
+              padding: 0;
+            }
+            body {
+              padding: 0;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-btn-container">
+          <button class="print-btn" onclick="window.print()">🖨️ Imprimer la Quittance</button>
+        </div>
+        <div class="container">
+          <div class="header">
+            <div class="header-left">
+              <h1>Quittance de Loyer</h1>
+              <p>Document officiel attestant du paiement du loyer et des charges</p>
+            </div>
+            <div class="header-right">
+              <strong>Date d'édition :</strong> ${generationDateStr}<br/>
+              <strong>Période :</strong> du 01/${String(monthIndex + 1).padStart(2, '0')}/${year} au ${daysInMonth}/${String(monthIndex + 1).padStart(2, '0')}/${year}
+            </div>
+          </div>
+
+          <div class="meta-info">
+            <div class="info-block">
+              <h3>Bailleur (Propriétaire)</h3>
+              <p><strong>Nom :</strong> Propriétaire de la Colocation</p>
+              <p><strong>Adresse :</strong> Adresse de la Colocation</p>
+            </div>
+            <div class="info-block">
+              <h3>Locataire (Colocataire)</h3>
+              <p><strong>Nom complet :</strong> ${coloc.prenom} ${coloc.nom}</p>
+              <p><strong>Date d'entrée :</strong> ${new Date(coloc.dateEntree).toLocaleDateString('fr-FR')}</p>
+              ${coloc.dateSortie ? `<p><strong>Date de sortie :</strong> ${new Date(coloc.dateSortie).toLocaleDateString('fr-FR')}</p>` : ''}
+            </div>
+          </div>
+
+          <div class="declaration">
+            Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> au titre du loyer et de la provision pour charges pour le mois de <strong>${monthName} ${year}</strong>. Cette quittance libère le locataire de tout paiement pour la période susmentionnée.
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Désignation</th>
+                <th style="text-align: right;">Montant (€)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Loyer principal net (Hors charges)</strong> ${presenceDays < daysInMonth ? `(au prorata de ${presenceDays} jours sur ${daysInMonth})` : ''}</td>
+                <td style="text-align: right;">${loyerDu.toFixed(2)} €</td>
+              </tr>
+              <tr>
+                <td><strong>Provision pour charges</strong> ${presenceDays < daysInMonth ? `(au prorata de ${presenceDays} jours sur ${daysInMonth})` : ''}</td>
+                <td style="text-align: right;">${chargesDue.toFixed(2)} €</td>
+              </tr>
+              <tr class="total-row">
+                <td><strong>Total reçu</strong></td>
+                <td style="text-align: right;">${totalDu.toFixed(2)} €</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="signature-section">
+            <div>
+              <p style="font-size: 12px; color: #64748b; margin-bottom: 5px;"><strong>Fait à :</strong> Colocation, le ${generationDateStr}</p>
+            </div>
+            <div class="sig-box">
+              <span class="sig-title">Signature du Bailleur</span>
+              <div class="sig-line">Signature précédée de la mention "bon pour quittance"</div>
+            </div>
+          </div>
+
+          <div class="footer">
+            Cette quittance est délivrée sous réserve d'encaissement effectif du règlement. Elle ne peut en aucun cas être considérée comme une renonciation au paiement de loyers ou charges antérieurs non encore réglés.
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
 
   // --- Initialisation & LocalStorage & Chargement Supabase ---
   useEffect(() => {
@@ -1219,6 +1537,130 @@ export default function App() {
             </div>
 
             <div className="modal-body" style={{ padding: '20px', maxHeight: '80vh', overflowY: 'auto' }}>
+              {/* SECTION GÉNÉRATION DES QUITTANCES DE LOYER DANS LE BILAN GLOBAL */}
+              <div className="card" style={{ marginBottom: '20px', padding: '16px', borderLeft: '4px solid var(--primary)', backgroundColor: 'var(--input-bg)' }}>
+                <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '15px' }}>
+                  <Printer size={16} style={{ color: 'var(--primary)' }} />
+                  <span>Édition des Quittances de Loyer</span>
+                </div>
+                <p className="card-subtitle" style={{ marginBottom: '14px', fontSize: '12px' }}>
+                  Générez et imprimez les quittances de loyer mensuelles officielles pour vos colocataires actifs.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                  {/* Sélectionner l'année */}
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '11px' }}>Année</label>
+                    <select 
+                      className="input-field" 
+                      style={{ padding: '6px 10px', fontSize: '13px', height: '34px' }}
+                      value={quittanceYear}
+                      onChange={(e) => setQuittanceYear(parseInt(e.target.value) || 2026)}
+                    >
+                      <option value={2024}>2024</option>
+                      <option value={2025}>2025</option>
+                      <option value={2026}>2026</option>
+                      <option value={2027}>2027</option>
+                      <option value={2028}>2028</option>
+                      <option value={2029}>2029</option>
+                      <option value={2030}>2030</option>
+                    </select>
+                  </div>
+
+                  {/* Sélectionner le mois */}
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontSize: '11px' }}>Mois</label>
+                    <select 
+                      className="input-field" 
+                      style={{ padding: '6px 10px', fontSize: '13px', height: '34px' }}
+                      value={quittanceMonth}
+                      onChange={(e) => setQuittanceMonth(parseInt(e.target.value) || 0)}
+                    >
+                      {NOMS_MOIS.map((m, idx) => (
+                        <option key={idx} value={idx}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Liste des colocataires actifs pour la période */}
+                <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '12px', marginTop: '12px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '10px' }}>
+                    Colocataires actifs en {NOMS_MOIS[quittanceMonth]} {quittanceYear} :
+                  </span>
+
+                  {getActiveColocatairesForMonth(quittanceYear, quittanceMonth).length === 0 ? (
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic', margin: 0 }}>
+                      Aucun colocataire actif pour cette période.
+                    </p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {getActiveColocatairesForMonth(quittanceYear, quittanceMonth).map((coloc) => {
+                        // Calculer les jours de présence pour afficher le prorata éventuel
+                        const daysInMonth = new Date(quittanceYear, quittanceMonth + 1, 0).getDate();
+                        let presenceDays = 0;
+                        for (let d = 1; d <= daysInMonth; d++) {
+                          const currentDayStr = `${quittanceYear}-${String(quittanceMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                          const hasEntered = currentDayStr >= coloc.dateEntree;
+                          const hasNotLeft = !coloc.dateSortie || currentDayStr <= coloc.dateSortie;
+                          if (hasEntered && hasNotLeft) {
+                            presenceDays++;
+                          }
+                        }
+                        const isProrated = presenceDays < daysInMonth;
+
+                        return (
+                          <div 
+                            key={coloc.id}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              padding: '8px 10px',
+                              backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: 'var(--radius-md)'
+                            }}
+                          >
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                              <span style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-primary)' }}>
+                                {coloc.prenom} {coloc.nom}
+                              </span>
+                              <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                                Présence : {presenceDays}/{daysInMonth} j {isProrated && <span style={{ color: '#d97706', fontWeight: 600 }}>(prorata)</span>}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handlePrintQuittance(coloc, quittanceYear, quittanceMonth)}
+                              className="btn"
+                              style={{
+                                width: 'auto',
+                                padding: '4px 8px',
+                                fontSize: '11px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                borderRadius: 'var(--radius-sm)',
+                                backgroundColor: 'var(--primary-light)',
+                                color: 'var(--primary)',
+                                border: 'none',
+                                fontWeight: 'bold',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Printer size={12} />
+                              <span>Quittance</span>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ borderTop: '2px solid var(--border-color)', margin: '20px 0 10px 0' }}></div>
+
               {(!currentResult || currentResult.cumulsAnnuels.reduce((sum, c) => sum + c.totalJoursPresence, 0) === 0) ? (
                 <div className="empty-state" style={{ padding: '16px 0' }}>
                   <AlertCircle size={32} className="empty-icon" style={{ color: 'var(--danger)' }} />
