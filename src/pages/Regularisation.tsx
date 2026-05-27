@@ -123,8 +123,8 @@ export default function Regularisation({
       chargesDue = Math.round((presenceDays * (rawCharges / daysInMonth)) * 100) / 100;
     }
 
-    const { chargeReelle, avanceDue, cumulCharges, cumulAvances } = getMonthlyChargesDetails(coloc.id, monthIndex);
-    const soldeRegul = Math.round((chargeReelle - avanceDue) * 100) / 100;
+    const { avanceDue, cumulCharges, cumulAvances } = getMonthlyChargesDetails(coloc.id, monthIndex);
+    const soldeRegul = Math.round((cumulCharges - cumulAvances) * 100) / 100;
 
     const totalDu = isRegulChecked
       ? Math.round((loyerDu + avanceDue + soldeRegul) * 100) / 100
@@ -354,12 +354,12 @@ export default function Regularisation({
 
           <div class="declaration">
             ${isRegulChecked 
-              ? `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> (comprenant ${loyerDu.toFixed(2)} € de loyer principal net, ${avanceDue.toFixed(2)} € de provision pour charges et ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)}` : soldeRegul.toFixed(2)} € au titre de la régularisation des charges réelles) au titre du loyer et des charges pour le mois de <strong>${monthName} ${year}</strong>. <br/><br/>
+              ? `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> (comprenant ${loyerDu.toFixed(2)} € de loyer principal net, ${avanceDue.toFixed(2)} € de provision pour charges pour ce mois et ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)}` : soldeRegul.toFixed(2)} € au titre de la régularisation des charges réelles cumulées) au titre du loyer et des charges pour le mois de <strong>${monthName} ${year}</strong>. <br/><br/>
                  À la date d'édition de cette quittance, l'état récapitulatif des charges cumulées sur la période d'occupation est le suivant :
                  <ul>
                    <li><strong>Montant total des charges réelles :</strong> ${cumulCharges.toFixed(2)} €</li>
                    <li><strong>Total des charges réglées (provisions versées) :</strong> ${cumulAvances.toFixed(2)} €</li>
-                   <li><strong>Solde cumulé de régularisation :</strong> ${(cumulCharges - cumulAvances) > 0 ? `+${(cumulCharges - cumulAvances).toFixed(2)}` : (cumulCharges - cumulAvances).toFixed(2)} €</li>
+                   <li><strong>Solde cumulé de régularisation :</strong> ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)}` : soldeRegul.toFixed(2)} €</li>
                  </ul>
                  Cette quittance libère le locataire de tout paiement pour la période susmentionnée.`
               : `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> au titre du loyer et de la provision pour charges pour le mois de <strong>${monthName} ${year}</strong>. Cette quittance libère le locataire de tout paiement pour la période susmentionnée.`
@@ -385,29 +385,13 @@ export default function Regularisation({
               </tr>
               <tr>
                 <td>
-                  <strong>Régularisation des charges (ce mois)</strong><br/>
+                  <strong>Régularisation des charges (cumulée à ce jour)</strong><br/>
                   <small style="color: #64748b; font-size: 11px;">
-                    Charges réelles du mois : ${chargeReelle.toFixed(2)} € | Avance versée : ${avanceDue.toFixed(2)} €
+                    Cumul charges réelles : ${cumulCharges.toFixed(2)} € | Cumul provisions payées : ${cumulAvances.toFixed(2)} €
                   </small>
                 </td>
                 <td style="text-align: right; color: ${soldeRegul > 0 ? '#b91c1c' : soldeRegul < 0 ? '#15803d' : '#334155'}; font-weight: 600;">
                   ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)} €` : `${soldeRegul.toFixed(2)} €`}
-                </td>
-              </tr>
-              <tr style="background-color: #f8fafc; font-size: 12px; color: #475569;">
-                <td style="padding-left: 20px;">
-                  <i>Cumul des charges réelles arrêtées à ce mois :</i>
-                </td>
-                <td style="text-align: right; font-style: italic; font-weight: 600;">
-                  ${cumulCharges.toFixed(2)} €
-                </td>
-              </tr>
-              <tr style="background-color: #f8fafc; font-size: 12px; color: #475569;">
-                <td style="padding-left: 20px;">
-                  <i>Cumul des provisions (charges réglées) jusqu'à ce mois :</i>
-                </td>
-                <td style="text-align: right; font-style: italic; font-weight: 600;">
-                  ${cumulAvances.toFixed(2)} €
                 </td>
               </tr>
               ` : `
