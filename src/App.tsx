@@ -116,6 +116,37 @@ export default function App() {
   // --- États & Handlers pour l'édition de quittances de loyer ---
   const [quittanceYear, setQuittanceYear] = useState<number>(2026);
   const [quittanceMonth, setQuittanceMonth] = useState<number>(new Date().getMonth());
+  const [checkedReguls, setCheckedReguls] = useState<Record<string, boolean>>({});
+
+  const getMonthlyChargesDetails = (colocId: string, monthIndex: number) => {
+    let chargeReelle = 0;
+    let avanceDue = 0;
+
+    if (!currentResult) return { chargeReelle, avanceDue };
+
+    const rep = currentResult.repartitionsMensuelles[monthIndex];
+    if (rep) {
+      const part = rep.parts.find((p: any) => p.colocId === colocId);
+      if (part) {
+        let cumDuPrev = 0;
+        let cumAvancePrev = 0;
+        
+        if (monthIndex > 0) {
+          const prevRep = currentResult.repartitionsMensuelles[monthIndex - 1];
+          const prevPart = prevRep.parts.find((p: any) => p.colocId === colocId);
+          if (prevPart) {
+            cumDuPrev = prevPart.montantDu;
+            cumAvancePrev = prevPart.avanceDue || 0;
+          }
+        }
+        
+        chargeReelle = Math.round((part.montantDu - cumDuPrev) * 100) / 100;
+        avanceDue = Math.round(((part.avanceDue || 0) - cumAvancePrev) * 100) / 100;
+      }
+    }
+    
+    return { chargeReelle, avanceDue };
+  };
 
   const getActiveColocatairesForMonth = (year: number, monthIndex: number) => {
     const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
@@ -129,7 +160,7 @@ export default function App() {
     });
   };
 
-  const handlePrintQuittance = (coloc: Colocataire, year: number, monthIndex: number) => {
+  const handlePrintQuittance = (coloc: Colocataire, year: number, monthIndex: number, isRegulChecked: boolean) => {
     const monthName = NOMS_MOIS[monthIndex];
     const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
     
@@ -157,7 +188,13 @@ export default function App() {
       chargesDue = Math.round((presenceDays * (rawCharges / daysInMonth)) * 100) / 100;
     }
 
-    const totalDu = Math.round((loyerDu + chargesDue) * 100) / 100;
+    const { chargeReelle, avanceDue } = getMonthlyChargesDetails(coloc.id, monthIndex);
+    const soldeRegul = Math.round((chargeReelle - avanceDue) * 100) / 100;
+
+    const totalDu = isRegulChecked
+      ? Math.round((loyerDu + avanceDue + soldeRegul) * 100) / 100
+      : Math.round((loyerDu + chargesDue) * 100) / 100;
+
     const generationDateStr = new Date().toLocaleDateString('fr-FR');
     
     const printWindow = window.open('', '_blank');
@@ -381,7 +418,10 @@ export default function App() {
           </div>
 
           <div class="declaration">
-            Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> au titre du loyer et de la provision pour charges pour le mois de <strong>${monthName} ${year}</strong>. Cette quittance libère le locataire de tout paiement pour la période susmentionnée.
+            ${isRegulChecked 
+              ? `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> (comprenant ${loyerDu.toFixed(2)} € de loyer principal net, ${avanceDue.toFixed(2)} € de provision pour charges et ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)}` : soldeRegul.toFixed(2)} € au titre de la régularisation des charges réelles) au titre du loyer et des charges pour le mois de <strong>${monthName} ${year}</strong>. Cette quittance libère le locataire de tout paiement pour la période susmentionnée.`
+              : `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> au titre du loyer et de la provision pour charges pour le mois de <strong>${monthName} ${year}</strong>. Cette quittance libère le locataire de tout paiement pour la période susmentionnée.`
+            }
           </div>
 
           <table>
@@ -396,10 +436,28 @@ export default function App() {
                 <td><strong>Loyer principal net (Hors charges)</strong> ${presenceDays < daysInMonth ? `(au prorata de ${presenceDays} jours sur ${daysInMonth})` : ''}</td>
                 <td style="text-align: right;">${loyerDu.toFixed(2)} €</td>
               </tr>
+              ${isRegulChecked ? `
+              <tr>
+                <td><strong>Provision pour charges payée</strong> ${presenceDays < daysInMonth ? `(au prorata de ${presenceDays} jours sur ${daysInMonth})` : ''}</td>
+                <td style="text-align: right;">${avanceDue.toFixed(2)} €</td>
+              </tr>
+              <tr>
+                <td>
+                  <strong>Régularisation des charges</strong><br/>
+                  <small style="color: #64748b; font-size: 11px;">
+                    Charges réelles du mois : ${chargeReelle.toFixed(2)} € | Avance versée : ${avanceDue.toFixed(2)} €
+                  </small>
+                </td>
+                <td style="text-align: right; color: ${soldeRegul > 0 ? '#b91c1c' : soldeRegul < 0 ? '#15803d' : '#334155'}; font-weight: 600;">
+                  ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)} €` : `${soldeRegul.toFixed(2)} €`}
+                </td>
+              </tr>
+              ` : `
               <tr>
                 <td><strong>Provision pour charges</strong> ${presenceDays < daysInMonth ? `(au prorata de ${presenceDays} jours sur ${daysInMonth})` : ''}</td>
                 <td style="text-align: right;">${chargesDue.toFixed(2)} €</td>
               </tr>
+              `}
               <tr class="total-row">
                 <td><strong>Total reçu</strong></td>
                 <td style="text-align: right;">${totalDu.toFixed(2)} €</td>
@@ -1629,9 +1687,17 @@ export default function App() {
                               <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
                                 Présence : {presenceDays}/{daysInMonth} j {isProrated && <span style={{ color: '#d97706', fontWeight: 600 }}>(prorata)</span>}
                               </span>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', marginTop: '4px', userSelect: 'none' }}>
+                                <input 
+                                  type="checkbox" 
+                                  checked={!!checkedReguls[coloc.id]} 
+                                  onChange={(e) => setCheckedReguls(prev => ({ ...prev, [coloc.id]: e.target.checked }))} 
+                                />
+                                <span style={{ color: 'var(--text-secondary)' }}>Régularisation des charges</span>
+                              </label>
                             </div>
                             <button
-                              onClick={() => handlePrintQuittance(coloc, quittanceYear, quittanceMonth)}
+                              onClick={() => handlePrintQuittance(coloc, quittanceYear, quittanceMonth, !!checkedReguls[coloc.id])}
                               className="btn"
                               style={{
                                 width: 'auto',
