@@ -159,7 +159,7 @@ export default function Calculateur({
     return '';
   };
 
-  const getProratedPeriodsForYear = (periods: PeriodeCharge[], year: number, categoryKey: string) => {
+  const getProratedPeriodsForYear = (periods: PeriodeCharge[], year: number, _categoryKey: string) => {
     const yearStartStr = `${year}-01-01`;
     const yearEndStr = `${year}-12-31`;
 
@@ -171,19 +171,7 @@ export default function Calculateur({
         const current = new Date(p.dateDebut);
         const end = new Date(p.dateFin);
         while (current <= end) {
-          const y = current.getFullYear();
-          const m = String(current.getMonth() + 1).padStart(2, '0');
-          const d = String(current.getDate()).padStart(2, '0');
-          const currentDateStr = `${y}-${m}-${d}`;
-          
           let weight = 1.0;
-          const dateObj = new Date(currentDateStr);
-          const month = dateObj.getMonth() + 1;
-          const isSummer = month >= 5 && month <= 10;
-          if (isSummer) {
-            if (categoryKey === 'gaz') weight = 0.2;
-            else if (categoryKey === 'electricite') weight = 0.7;
-          }
           totalWeight += weight;
           current.setDate(current.getDate() + 1);
         }
@@ -200,19 +188,7 @@ export default function Calculateur({
           const currentInt = new Date(overlapStart);
           const limitInt = new Date(overlapEnd);
           while (currentInt <= limitInt) {
-            const y = currentInt.getFullYear();
-            const m = String(currentInt.getMonth() + 1).padStart(2, '0');
-            const d = String(currentInt.getDate()).padStart(2, '0');
-            const currentDateStr = `${y}-${m}-${d}`;
-            
             let weight = 1.0;
-            const dateObj = new Date(currentDateStr);
-            const month = dateObj.getMonth() + 1;
-            const isSummer = month >= 5 && month <= 10;
-            if (isSummer) {
-              if (categoryKey === 'gaz') weight = 0.2;
-              else if (categoryKey === 'electricite') weight = 0.7;
-            }
             proratedAmount += baseDailyCost * weight;
             overlapDays++;
             currentInt.setDate(currentInt.getDate() + 1);

@@ -31,19 +31,7 @@ export function isLeapYear(year: number): boolean {
  * Retourne le coefficient de pondération saisonnière d'une date pour une catégorie donnée.
  * Période sans chauffage : Mai (mois 5) à Octobre (mois 10) inclus.
  */
-export function getSeasonalWeight(typeCharge: keyof ChargesDetaillees, dateStr: string): number {
-  const date = new Date(dateStr);
-  const month = date.getMonth() + 1; // 1-12
-  const isSummer = month >= 5 && month <= 10; // Mai à Octobre
-
-  if (isSummer) {
-    if (typeCharge === 'gaz') {
-      return 0.2; // Abattement de 80% (le coût vaut 20% d'un jour d'hiver)
-    }
-    if (typeCharge === 'electricite') {
-      return 0.7; // Abattement de 30% (le coût vaut 70% d'un jour d'hiver)
-    }
-  }
+export function getSeasonalWeight(_typeCharge: keyof ChargesDetaillees, _dateStr: string): number {
   return 1.0;
 }
 

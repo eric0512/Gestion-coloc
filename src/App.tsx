@@ -691,21 +691,7 @@ export default function App() {
       const current = new Date(p.dateDebut);
       const end = new Date(p.dateFin);
       while (current <= end) {
-        const y = current.getFullYear();
-        const m = String(current.getMonth() + 1).padStart(2, '0');
-        const d = String(current.getDate()).padStart(2, '0');
-        const currentDateStr = `${y}-${m}-${d}`;
-        
         let weight = 1.0;
-        const dateObj = new Date(currentDateStr);
-        const month = dateObj.getMonth() + 1; // 1-12
-        const isSummer = month >= 5 && month <= 10; // Mai à Octobre
-
-        if (isSummer) {
-          if (p.category === 'gaz') weight = 0.2;
-          else if (p.category === 'electricite') weight = 0.7;
-        }
-
         totalWeight += weight;
         current.setDate(current.getDate() + 1);
       }
@@ -791,12 +777,6 @@ export default function App() {
         const activePeriodsOnDay = activePeriods.filter(p => currentDateStr >= p.startDate && currentDateStr <= p.endDate);
         const costOnDay = activePeriodsOnDay.reduce((sum, p) => {
           let weight = 1.0;
-          const month = currentDate.getMonth() + 1; // 1-12
-          const isSummer = month >= 5 && month <= 10;
-          if (isSummer) {
-            if (p.category === 'gaz') weight = 0.2;
-            else if (p.category === 'electricite') weight = 0.7;
-          }
           return sum + p.baseDailyCost * weight;
         }, 0);
 
@@ -824,12 +804,6 @@ export default function App() {
         const activePeriodsOnDay = activePeriods.filter(p => currentDateStr >= p.startDate && currentDateStr <= p.endDate);
         monthlyBudgetReel += activePeriodsOnDay.reduce((sum, p) => {
           let weight = 1.0;
-          const month = currentDate.getMonth() + 1; // 1-12
-          const isSummer = month >= 5 && month <= 10;
-          if (isSummer) {
-            if (p.category === 'gaz') weight = 0.2;
-            else if (p.category === 'electricite') weight = 0.7;
-          }
           return sum + p.baseDailyCost * weight;
         }, 0);
       }
