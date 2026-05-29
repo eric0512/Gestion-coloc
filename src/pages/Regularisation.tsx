@@ -47,7 +47,7 @@ export default function Regularisation({
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [quittanceYear, setQuittanceYear] = useState<number>(2026);
   const [quittanceMonth, setQuittanceMonth] = useState<number>(new Date().getMonth());
-  const [checkedReguls, setCheckedReguls] = useState<Record<string, boolean>>({});
+  const [quittanceType, setQuittanceType] = useState<'simple' | 'regul' | 'depart'>('simple');
 
   const getMonthlyChargesDetails = (colocId: string, monthIndex: number) => {
     let chargeReelle = 0;
@@ -105,9 +105,8 @@ export default function Regularisation({
 
       return isActiveThisMonth;
     });
-  };
-
-  const handlePrintQuittance = (coloc: Colocataire, year: number, monthIndex: number, isRegulChecked: boolean) => {
+  };  const handlePrintQuittance = (coloc: Colocataire, year: number, monthIndex: number, type: 'simple' | 'regul' | 'depart' = 'simple') => {
+    const isRegulChecked = type === 'regul' || type === 'depart';
     const monthName = NOMS_MOIS[monthIndex];
     const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
     
@@ -122,8 +121,8 @@ export default function Regularisation({
       }
     }
 
-    if (presenceDays === 0 && !isRegulChecked) {
-      alert("Ce colocataire n'était pas présent ce mois-ci. Veuillez cocher l'option 'Régularisation des charges' pour imprimer son reçu de régularisation.");
+    if (presenceDays === 0 && type === 'simple') {
+      alert("Ce colocataire n'était pas présent ce mois-ci. Veuillez choisir 'Quittances avec régularisation' ou 'Quittances de départ' pour imprimer son reçu.");
       return;
     }
 
@@ -153,12 +152,24 @@ export default function Regularisation({
       return;
     }
 
+    const docTitle = type === 'simple' 
+      ? `Quittance de Loyer` 
+      : type === 'regul' 
+        ? `Quittance de Loyer & Régularisation` 
+        : `Quittance de Loyer de Départ`;
+
+    const docSubtitle = type === 'simple'
+      ? `Document officiel attestant du paiement du loyer et des charges`
+      : type === 'regul'
+        ? `Document officiel avec régularisation des charges réelles`
+        : `Solde de tout compte et régularisation définitive des charges`;
+
     const htmlContent = `
       <!DOCTYPE html>
       <html lang="fr">
       <head>
         <meta charset="UTF-8">
-        <title>Quittance de Loyer - ${coloc.prenom} ${coloc.nom}</title>
+        <title>${docTitle} - ${coloc.prenom} ${coloc.nom}</title>
         <style>
           body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -181,13 +192,13 @@ export default function Regularisation({
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            border-bottom: 2px solid #3b82f6;
+            border-bottom: 2px solid ${type === 'depart' ? '#be185d' : '#3b82f6'};
             padding-bottom: 20px;
             margin-bottom: 30px;
           }
           .header-left h1 {
             font-size: 24px;
-            color: #1d4ed8;
+            color: ${type === 'depart' ? '#be185d' : '#1d4ed8'};
             margin: 0 0 5px 0;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -228,13 +239,13 @@ export default function Regularisation({
             color: #334155;
           }
           .declaration {
-            background-color: #eff6ff;
-            border: 1px solid #bfdbfe;
+            background-color: ${type === 'depart' ? '#fdf2f8' : '#eff6ff'};
+            border: 1px solid ${type === 'depart' ? '#fbcfe8' : '#bfdbfe'};
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 35px;
             font-style: italic;
-            color: #1e3a8a;
+            color: ${type === 'depart' ? '#9d174d' : '#1e3a8a'};
           }
           table {
             width: 100%;
@@ -242,7 +253,7 @@ export default function Regularisation({
             margin-bottom: 35px;
           }
           th {
-            background-color: #1d4ed8;
+            background-color: ${type === 'depart' ? '#be185d' : '#1d4ed8'};
             color: #ffffff;
             font-weight: 600;
             text-align: left;
@@ -308,7 +319,7 @@ export default function Regularisation({
             justify-content: flex-end;
           }
           .print-btn {
-            background-color: #1d4ed8;
+            background-color: ${type === 'depart' ? '#be185d' : '#1d4ed8'};
             color: #ffffff;
             border: none;
             padding: 10px 20px;
@@ -320,7 +331,7 @@ export default function Regularisation({
             transition: background-color 0.2s ease;
           }
           .print-btn:hover {
-            background-color: #1e40af;
+            background-color: ${type === 'depart' ? '#9d174d' : '#1e40af'};
           }
           @media print {
             .print-btn-container {
@@ -344,8 +355,8 @@ export default function Regularisation({
         <div class="container">
           <div class="header">
             <div class="header-left">
-              <h1>Quittance de Loyer</h1>
-              <p>Document officiel attestant du paiement du loyer et des charges</p>
+              <h1>${docTitle}</h1>
+              <p>${docSubtitle}</p>
             </div>
             <div class="header-right">
               <strong>Date d'édition :</strong> ${generationDateStr}<br/>
@@ -368,16 +379,19 @@ export default function Regularisation({
           </div>
 
           <div class="declaration">
-            ${isRegulChecked 
-              ? `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> (comprenant ${loyerDu.toFixed(2)} € de loyer principal net, ${avanceDue.toFixed(2)} € de provision pour charges pour ce mois et ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)}` : soldeRegul.toFixed(2)} € au titre de la régularisation des charges réelles cumulées) au titre du loyer et des charges pour le mois de <strong>${monthName} ${year}</strong>. <br/><br/>
-                 À la date d'édition de cette quittance, l'état récapitulatif des charges cumulées sur la période d'occupation est le suivant :
-                 <ul>
-                   <li><strong>Montant total des charges réelles :</strong> ${cumulCharges.toFixed(2)} €</li>
-                   <li><strong>Total des charges réglées (provisions versées) :</strong> ${cumulAvances.toFixed(2)} €</li>
-                   <li><strong>Solde cumulé de régularisation :</strong> ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)}` : soldeRegul.toFixed(2)} €</li>
-                 </ul>
-                 Cette quittance libère le locataire de tout paiement pour la période susmentionnée.`
-              : `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> au titre du loyer et de la provision pour charges pour le mois de <strong>${monthName} ${year}</strong>. Cette quittance libère le locataire de tout paiement pour la période susmentionnée.`
+            ${type === 'simple'
+              ? `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> au titre du loyer et de la provision pour charges pour le mois de <strong>${monthName} ${year}</strong>. Cette quittance libère le locataire de tout paiement pour la période susmentionnée.`
+              : type === 'regul'
+                ? `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> (comprenant ${loyerDu.toFixed(2)} € de loyer principal net, ${avanceDue.toFixed(2)} € de provision pour charges pour ce mois et ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)}` : soldeRegul.toFixed(2)} € au titre de la régularisation des charges réelles cumulées) au titre du loyer et des charges pour le mois de <strong>${monthName} ${year}</strong>. <br/><br/>
+                   À la date d'édition de cette quittance, l'état récapitulatif des charges cumulées sur la période d'occupation est le suivant :
+                   <ul>
+                     <li><strong>Montant total des charges réelles :</strong> ${cumulCharges.toFixed(2)} €</li>
+                     <li><strong>Total des charges réglées (provisions versées) :</strong> ${cumulAvances.toFixed(2)} €</li>
+                     <li><strong>Solde cumulé de régularisation :</strong> ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)}` : soldeRegul.toFixed(2)} €</li>
+                   </ul>
+                   Cette quittance libère le locataire de tout paiement pour la période susmentionnée.`
+                : `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> (comprenant ${loyerDu.toFixed(2)} € de loyer principal net au prorata de sa présence, ${avanceDue.toFixed(2)} € de provision pour charges pour ce mois et ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)}` : soldeRegul.toFixed(2)} € au titre de la régularisation définitive des charges réelles cumulées). <br/><br/>
+                   Cette quittance est délivrée pour solde de tout compte et libère définitivement le locataire de toute obligation relative aux loyers et charges pour l'intégralité de sa période d'occupation.`
             }
           </div>
 
@@ -427,8 +441,8 @@ export default function Regularisation({
               <p style="font-size: 12px; color: #64748b; margin-bottom: 5px;"><strong>Fait à :</strong> Colocation, le ${generationDateStr}</p>
             </div>
             <div class="sig-box">
-              <span class="sig-title">Signature du Bailleur</span>
-              <div class="sig-line">Signature précédée de la mention "bon pour quittance"</div>
+              <span class="sig-title">${type === 'depart' ? 'Signature du Locataire et Propriétaire' : 'Signature du Bailleur'}</span>
+              <div class="sig-line">Signature précédée de la mention "${type === 'depart' ? 'bon pour solde de tout compte' : 'bon pour quittance'}"</div>
             </div>
           </div>
 
@@ -608,13 +622,10 @@ export default function Regularisation({
 
       {/* SECTION GÉNÉRATION DES QUITTANCES DE LOYER */}
       <div className="card" style={{ marginBottom: '20px', borderLeft: '4px solid var(--primary)' }}>
-        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <Printer size={16} style={{ color: 'var(--primary)' }} />
           <span>Édition des Quittances de Loyer</span>
         </div>
-        <p className="card-subtitle" style={{ marginBottom: '16px' }}>
-          Générez et imprimez les quittances de loyer mensuelles officielles pour vos colocataires actifs.
-        </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
           {/* Sélectionner l'année */}
@@ -648,6 +659,72 @@ export default function Regularisation({
               ))}
             </select>
           </div>
+        </div>
+
+        {/* Boutons d'options d'édition demandés */}
+        <div style={{ display: 'flex', gap: '10px', marginTop: '16px', marginBottom: '8px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setQuittanceType('simple')}
+            className="btn"
+            style={{
+              flex: 1,
+              minWidth: '120px',
+              padding: '10px 14px',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              borderRadius: 'var(--radius-md)',
+              border: quittanceType === 'simple' ? 'none' : '1px solid var(--border-color)',
+              background: quittanceType === 'simple' ? 'linear-gradient(135deg, var(--primary), var(--primary-dark))' : 'var(--input-bg)',
+              color: quittanceType === 'simple' ? 'var(--text-inverse)' : 'var(--text-primary)',
+              cursor: 'pointer',
+              boxShadow: quittanceType === 'simple' ? '0 4px 10px rgba(79, 70, 229, 0.2)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            📄 Quittances simples
+          </button>
+          
+          <button
+            onClick={() => setQuittanceType('regul')}
+            className="btn"
+            style={{
+              flex: 1,
+              minWidth: '120px',
+              padding: '10px 14px',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              borderRadius: 'var(--radius-md)',
+              border: quittanceType === 'regul' ? 'none' : '1px solid var(--border-color)',
+              background: quittanceType === 'regul' ? 'linear-gradient(135deg, var(--secondary), #0f766e)' : 'var(--input-bg)',
+              color: quittanceType === 'regul' ? 'var(--text-inverse)' : 'var(--text-primary)',
+              cursor: 'pointer',
+              boxShadow: quittanceType === 'regul' ? '0 4px 10px rgba(13, 148, 136, 0.2)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            ⚖️ Quittances avec régul.
+          </button>
+
+          <button
+            onClick={() => setQuittanceType('depart')}
+            className="btn"
+            style={{
+              flex: 1,
+              minWidth: '120px',
+              padding: '10px 14px',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              borderRadius: 'var(--radius-md)',
+              border: quittanceType === 'depart' ? 'none' : '1px solid var(--border-color)',
+              background: quittanceType === 'depart' ? 'linear-gradient(135deg, #ec4899, #be185d)' : 'var(--input-bg)',
+              color: quittanceType === 'depart' ? 'var(--text-inverse)' : 'var(--text-primary)',
+              cursor: 'pointer',
+              boxShadow: quittanceType === 'depart' ? '0 4px 10px rgba(236, 72, 153, 0.2)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            🚪 Quittances de départ
+          </button>
         </div>
 
         {/* Liste des colocataires actifs pour la période */}
@@ -702,37 +779,29 @@ export default function Regularisation({
                           <span style={{ color: '#d97706', fontWeight: 600 }}>(au prorata)</span>
                         ) : null}
                       </span>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', marginTop: '4px', userSelect: 'none' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={!!checkedReguls[coloc.id]} 
-                          onChange={(e) => setCheckedReguls(prev => ({ ...prev, [coloc.id]: e.target.checked }))} 
-                        />
-                        <span style={{ color: 'var(--text-secondary)' }}>Régularisation des charges</span>
-                      </label>
                     </div>
                     <button
-                      onClick={() => handlePrintQuittance(coloc, quittanceYear, quittanceMonth, !!checkedReguls[coloc.id])}
+                      onClick={() => handlePrintQuittance(coloc, quittanceYear, quittanceMonth, quittanceType)}
                       className="btn btn-secondary"
-                      title={presenceDays === 0 && !checkedReguls[coloc.id] ? "Cochez 'Régularisation des charges' pour imprimer" : "Imprimer la quittance"}
                       style={{
                         width: 'auto',
-                        padding: '6px 12px',
+                        padding: '6px 14px',
                         fontSize: '12px',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
                         borderRadius: 'var(--radius-sm)',
-                        backgroundColor: presenceDays === 0 && !checkedReguls[coloc.id] ? 'var(--border-color)' : 'var(--primary-light)',
-                        color: presenceDays === 0 && !checkedReguls[coloc.id] ? 'var(--text-secondary)' : 'var(--primary)',
+                        backgroundColor: quittanceType === 'simple' ? 'var(--primary-light)' : quittanceType === 'regul' ? 'var(--secondary-light)' : '#fce7f3',
+                        color: quittanceType === 'simple' ? 'var(--primary)' : quittanceType === 'regul' ? 'var(--secondary)' : '#be185d',
                         border: 'none',
                         fontWeight: 'bold',
-                        cursor: 'pointer',
-                        opacity: presenceDays === 0 && !checkedReguls[coloc.id] ? 0.6 : 1
+                        cursor: 'pointer'
                       }}
                     >
                       <Printer size={14} />
-                      <span>Quittance</span>
+                      <span>
+                        {quittanceType === 'simple' ? 'Quittance' : quittanceType === 'regul' ? 'Reçu avec Régul.' : 'Reçu de Départ'}
+                      </span>
                     </button>
                   </div>
                 );
