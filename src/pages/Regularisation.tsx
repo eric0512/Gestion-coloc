@@ -733,13 +733,27 @@ export default function Regularisation({
             Colocataires actifs en {NOMS_MOIS[quittanceMonth]} {quittanceYear} :
           </span>
 
-          {getActiveColocatairesForMonth(quittanceYear, quittanceMonth).length === 0 ? (
+          {getActiveColocatairesForMonth(quittanceYear, quittanceMonth).filter(coloc => {
+            if (quittanceType === 'depart') {
+              return !!coloc.dateSortie;
+            }
+            return true;
+          }).length === 0 ? (
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic', margin: 0 }}>
-              Aucun colocataire actif pour cette période.
+              {quittanceType === 'depart' 
+                ? "Aucun colocataire avec date de départ pour cette période." 
+                : "Aucun colocataire actif pour cette période."}
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {getActiveColocatairesForMonth(quittanceYear, quittanceMonth).map((coloc) => {
+              {getActiveColocatairesForMonth(quittanceYear, quittanceMonth)
+                .filter(coloc => {
+                  if (quittanceType === 'depart') {
+                    return !!coloc.dateSortie;
+                  }
+                  return true;
+                })
+                .map((coloc) => {
                 // Calculer les jours de présence pour afficher le prorata éventuel
                 const daysInMonth = new Date(quittanceYear, quittanceMonth + 1, 0).getDate();
                 let presenceDays = 0;
