@@ -737,7 +737,7 @@ export default function Regularisation({
             if (quittanceType === 'depart') {
               return !!coloc.dateSortie;
             }
-            return true;
+            return !coloc.dateSortie;
           }).length === 0 ? (
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic', margin: 0 }}>
               {quittanceType === 'depart' 
@@ -751,7 +751,7 @@ export default function Regularisation({
                   if (quittanceType === 'depart') {
                     return !!coloc.dateSortie;
                   }
-                  return true;
+                  return !coloc.dateSortie;
                 })
                 .map((coloc) => {
                 // Calculer les jours de présence pour afficher le prorata éventuel
