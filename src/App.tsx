@@ -157,10 +157,22 @@ export default function App() {
     const startOfMonthStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`;
     const endOfMonthStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${daysInMonth}`;
 
+    const isYearRegularized = calculsAnnuels.some(c => c.annee === year);
+
     return colocataires.filter(coloc => {
       const hasEntered = coloc.dateEntree <= endOfMonthStr;
       const hasNotLeft = !coloc.dateSortie || coloc.dateSortie >= startOfMonthStr;
-      return hasEntered && hasNotLeft;
+      const isActiveThisMonth = hasEntered && hasNotLeft;
+
+      if (!isYearRegularized) {
+        const startOfYearStr = `${year}-01-01`;
+        const endOfYearStr = `${year}-12-31`;
+        const wasPresentThisYear = coloc.dateEntree <= endOfYearStr && (!coloc.dateSortie || coloc.dateSortie >= startOfYearStr);
+        const hasEnteredBeforeOrDuringMonth = coloc.dateEntree <= endOfMonthStr;
+        return wasPresentThisYear && hasEnteredBeforeOrDuringMonth;
+      }
+
+      return isActiveThisMonth;
     });
   };
 
@@ -179,7 +191,10 @@ export default function App() {
       }
     }
 
-    if (presenceDays === 0) return;
+    if (presenceDays === 0 && !isRegulChecked) {
+      alert("Ce colocataire n'était pas présent ce mois-ci. Veuillez cocher l'option 'Régularisation des charges' pour imprimer son reçu de régularisation.");
+      return;
+    }
 
     const rawLoyer = coloc.loyer !== undefined ? coloc.loyer : 0;
     const rawCharges = coloc.avanceCharge !== undefined ? coloc.avanceCharge : 150;
@@ -1670,7 +1685,13 @@ export default function App() {
                                 {coloc.prenom} {coloc.nom}
                               </span>
                               <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-                                Présence : {presenceDays}/{daysInMonth} j {isProrated && <span style={{ color: '#d97706', fontWeight: 600 }}>(prorata)</span>}
+                                Présence : {presenceDays}/{daysInMonth} j {presenceDays === 0 ? (
+                                  <span style={{ color: '#d97706', fontWeight: 600, backgroundColor: 'rgba(217, 119, 6, 0.1)', padding: '2px 4px', borderRadius: '4px', marginLeft: '4px' }}>
+                                    ⚠️ Régul
+                                  </span>
+                                ) : isProrated ? (
+                                  <span style={{ color: '#d97706', fontWeight: 600 }}>(prorata)</span>
+                                ) : null}
                               </span>
                               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', marginTop: '4px', userSelect: 'none' }}>
                                 <input 
@@ -1684,6 +1705,7 @@ export default function App() {
                             <button
                               onClick={() => handlePrintQuittance(coloc, quittanceYear, quittanceMonth, !!checkedReguls[coloc.id])}
                               className="btn"
+                              title={presenceDays === 0 && !checkedReguls[coloc.id] ? "Cochez 'Régularisation des charges' pour imprimer" : "Imprimer la quittance"}
                               style={{
                                 width: 'auto',
                                 padding: '4px 8px',
@@ -1692,11 +1714,12 @@ export default function App() {
                                 alignItems: 'center',
                                 gap: '4px',
                                 borderRadius: 'var(--radius-sm)',
-                                backgroundColor: 'var(--primary-light)',
-                                color: 'var(--primary)',
+                                backgroundColor: presenceDays === 0 && !checkedReguls[coloc.id] ? 'var(--border-color)' : 'var(--primary-light)',
+                                color: presenceDays === 0 && !checkedReguls[coloc.id] ? 'var(--text-secondary)' : 'var(--primary)',
                                 border: 'none',
                                 fontWeight: 'bold',
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                opacity: presenceDays === 0 && !checkedReguls[coloc.id] ? 0.6 : 1
                               }}
                             >
                               <Printer size={12} />

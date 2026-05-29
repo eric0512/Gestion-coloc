@@ -88,10 +88,22 @@ export default function Regularisation({
     const startOfMonthStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`;
     const endOfMonthStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${daysInMonth}`;
 
+    const isYearRegularized = calculsAnnuels.some(c => c.annee === year);
+
     return colocataires.filter(coloc => {
       const hasEntered = coloc.dateEntree <= endOfMonthStr;
       const hasNotLeft = !coloc.dateSortie || coloc.dateSortie >= startOfMonthStr;
-      return hasEntered && hasNotLeft;
+      const isActiveThisMonth = hasEntered && hasNotLeft;
+
+      if (!isYearRegularized) {
+        const startOfYearStr = `${year}-01-01`;
+        const endOfYearStr = `${year}-12-31`;
+        const wasPresentThisYear = coloc.dateEntree <= endOfYearStr && (!coloc.dateSortie || coloc.dateSortie >= startOfYearStr);
+        const hasEnteredBeforeOrDuringMonth = coloc.dateEntree <= endOfMonthStr;
+        return wasPresentThisYear && hasEnteredBeforeOrDuringMonth;
+      }
+
+      return isActiveThisMonth;
     });
   };
 
@@ -110,7 +122,10 @@ export default function Regularisation({
       }
     }
 
-    if (presenceDays === 0) return;
+    if (presenceDays === 0 && !isRegulChecked) {
+      alert("Ce colocataire n'était pas présent ce mois-ci. Veuillez cocher l'option 'Régularisation des charges' pour imprimer son reçu de régularisation.");
+      return;
+    }
 
     const rawLoyer = coloc.loyer !== undefined ? coloc.loyer : 0;
     const rawCharges = coloc.avanceCharge !== undefined ? coloc.avanceCharge : 150;
@@ -679,7 +694,13 @@ export default function Regularisation({
                         {coloc.prenom} {coloc.nom}
                       </span>
                       <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                        Présence : {presenceDays} / {daysInMonth} jours {isProrated && <span style={{ color: '#d97706', fontWeight: 600 }}>(au prorata)</span>}
+                        Présence : {presenceDays} / {daysInMonth} jours {presenceDays === 0 ? (
+                          <span style={{ color: '#d97706', fontWeight: 600, backgroundColor: 'rgba(217, 119, 6, 0.1)', padding: '2px 6px', borderRadius: '4px', marginLeft: '4px' }}>
+                            ⚠️ Régul en attente
+                          </span>
+                        ) : isProrated ? (
+                          <span style={{ color: '#d97706', fontWeight: 600 }}>(au prorata)</span>
+                        ) : null}
                       </span>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', marginTop: '4px', userSelect: 'none' }}>
                         <input 
@@ -693,6 +714,7 @@ export default function Regularisation({
                     <button
                       onClick={() => handlePrintQuittance(coloc, quittanceYear, quittanceMonth, !!checkedReguls[coloc.id])}
                       className="btn btn-secondary"
+                      title={presenceDays === 0 && !checkedReguls[coloc.id] ? "Cochez 'Régularisation des charges' pour imprimer" : "Imprimer la quittance"}
                       style={{
                         width: 'auto',
                         padding: '6px 12px',
@@ -701,11 +723,12 @@ export default function Regularisation({
                         alignItems: 'center',
                         gap: '6px',
                         borderRadius: 'var(--radius-sm)',
-                        backgroundColor: 'var(--primary-light)',
-                        color: 'var(--primary)',
+                        backgroundColor: presenceDays === 0 && !checkedReguls[coloc.id] ? 'var(--border-color)' : 'var(--primary-light)',
+                        color: presenceDays === 0 && !checkedReguls[coloc.id] ? 'var(--text-secondary)' : 'var(--primary)',
                         border: 'none',
                         fontWeight: 'bold',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        opacity: presenceDays === 0 && !checkedReguls[coloc.id] ? 0.6 : 1
                       }}
                     >
                       <Printer size={14} />
