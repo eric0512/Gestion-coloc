@@ -133,11 +133,11 @@ export default function Accueil({
               <Receipt size={24} />
             </div>
             <div>
-              <span style={{ display: 'block', fontSize: '18px', fontWeight: 700, color: 'var(--text-inverse)' }}>
-                Facturation
+              <span style={{ display: 'block', fontSize: '16px', fontWeight: 700, color: 'var(--text-inverse)', lineHeight: 1.2 }}>
+                Quittances et régularisation des charges
               </span>
-              <span style={{ display: 'block', fontSize: '12px', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
-                Consulter le bilan de régularisation annuel
+              <span style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.8)', marginTop: '4px' }}>
+                Générer les reçus et consulter le bilan annuel
               </span>
             </div>
           </div>
