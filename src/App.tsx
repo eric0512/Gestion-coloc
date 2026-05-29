@@ -229,10 +229,10 @@ export default function App() {
         : `Quittance de Loyer de Départ`;
 
     const docSubtitle = type === 'simple'
-      ? `Document officiel attestant du paiement du loyer et des charges`
+      ? `Document officiel`
       : type === 'regul'
-        ? `Document officiel avec régularisation des charges réelles`
-        : `Solde de tout compte et régularisation définitive des charges`;
+        ? `Document officiel avec régularisation`
+        : `Solde de tout compte et régularisation`;
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -246,93 +246,101 @@ export default function App() {
             color: #1e293b;
             background-color: #ffffff;
             margin: 0;
-            padding: 40px;
-            font-size: 14px;
-            line-height: 1.6;
+            padding: 20px;
+            font-size: 12px;
+            line-height: 1.4;
           }
           .container {
             max-width: 700px;
             margin: 0 auto;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 40px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 15px 25px;
+            box-sizing: border-box;
+            background-color: #ffffff;
+            height: 138mm;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
           }
           .header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            border-bottom: 2px solid ${type === 'depart' ? '#be185d' : '#3b82f6'};
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            border-bottom: 1.5px solid ${type === 'depart' ? '#be185d' : '#3b82f6'};
+            padding-bottom: 8px;
+            margin-bottom: 10px;
           }
           .header-left h1 {
-            font-size: 24px;
+            font-size: 18px;
             color: ${type === 'depart' ? '#be185d' : '#1d4ed8'};
-            margin: 0 0 5px 0;
+            margin: 0 0 2px 0;
             text-transform: uppercase;
             letter-spacing: 0.5px;
           }
           .header-left p {
             margin: 0;
             color: #64748b;
-            font-size: 12px;
+            font-size: 10px;
           }
           .header-right {
             text-align: right;
-            font-size: 12px;
+            font-size: 10px;
             color: #475569;
           }
           .meta-info {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 35px;
+            gap: 15px;
+            margin-bottom: 12px;
           }
           .info-block {
             background-color: #f8fafc;
             border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
+            border-radius: 6px;
+            padding: 10px 14px;
           }
           .info-block h3 {
-            margin: 0 0 12px 0;
+            margin: 0 0 6px 0;
             color: #1e293b;
-            font-size: 13px;
+            font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             border-bottom: 1px solid #cbd5e1;
-            padding-bottom: 6px;
+            padding-bottom: 4px;
           }
           .info-block p {
-            margin: 4px 0;
+            margin: 2px 0;
             color: #334155;
+            font-size: 11px;
           }
           .declaration {
             background-color: ${type === 'depart' ? '#fdf2f8' : '#eff6ff'};
             border: 1px solid ${type === 'depart' ? '#fbcfe8' : '#bfdbfe'};
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 35px;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
             font-style: italic;
             color: ${type === 'depart' ? '#9d174d' : '#1e3a8a'};
+            font-size: 11px;
           }
           table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 35px;
+            margin-bottom: 12px;
           }
           th {
             background-color: ${type === 'depart' ? '#be185d' : '#1d4ed8'};
             color: #ffffff;
             font-weight: 600;
             text-align: left;
-            padding: 12px;
-            font-size: 13px;
+            padding: 8px;
+            font-size: 11px;
             text-transform: uppercase;
           }
           td {
-            padding: 12px;
+            padding: 6px 8px;
             border-bottom: 1px solid #e2e8f0;
             color: #334155;
           }
@@ -341,47 +349,47 @@ export default function App() {
             background-color: #f1f5f9;
           }
           .total-row td {
-            border-bottom: 2px solid #cbd5e1;
-            border-top: 2px solid #cbd5e1;
+            border-bottom: 1.5px solid #cbd5e1;
+            border-top: 1.5px solid #cbd5e1;
             color: #0f172a;
-            font-size: 15px;
+            font-size: 13px;
           }
           .signature-section {
-            margin-top: 50px;
+            margin-top: 8px;
             display: flex;
             justify-content: space-between;
-            page-break-inside: avoid;
+            align-items: flex-end;
           }
           .sig-box {
             border: 1px dashed #cbd5e1;
-            border-radius: 8px;
-            width: 250px;
-            height: 140px;
-            padding: 15px;
+            border-radius: 6px;
+            width: 220px;
+            height: 90px;
+            padding: 8px 12px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
           }
           .sig-title {
-            font-size: 11px;
+            font-size: 9px;
             color: #64748b;
             font-weight: bold;
             text-transform: uppercase;
           }
           .sig-line {
             border-top: 1px solid #cbd5e1;
-            margin-top: 10px;
+            margin-top: 5px;
             text-align: center;
-            font-size: 11px;
+            font-size: 9px;
             color: #94a3b8;
           }
           .footer {
-            margin-top: 60px;
+            margin-top: 8px;
             text-align: center;
             color: #94a3b8;
-            font-size: 11px;
+            font-size: 9px;
             border-top: 1px solid #e2e8f0;
-            padding-top: 15px;
+            padding-top: 5px;
           }
           .print-btn-container {
             margin-bottom: 20px;
@@ -434,24 +442,36 @@ export default function App() {
             </div>
           </div>
 
-          <div class="meta-info">
-            <div class="info-block">
-              <h3>Bailleur (Propriétaire)</h3>
-              <p><strong>Nom :</strong> Propriétaire de la Colocation</p>
-              <p><strong>Adresse :</strong> Adresse de la Colocation</p>
+          ${type === 'simple' 
+            ? `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 15px;">
+              <div>
+                <span style="font-size: 13px; color: #64748b; text-transform: uppercase; font-weight: 600;">Locataire :</span>
+                <span style="font-size: 15px; font-weight: bold; color: #0f172a; margin-left: 8px;">${coloc.prenom.toUpperCase()} ${coloc.nom.toUpperCase()}</span>
+              </div>
+              <div>
+                <span style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600;">Date d'entrée :</span>
+                <span style="font-size: 13px; font-weight: bold; color: #334155; margin-left: 8px;">${new Date(coloc.dateEntree).toLocaleDateString('fr-FR')}</span>
+              </div>
             </div>
-            <div class="info-block">
-              <h3>Locataire (Colocataire)</h3>
-              <p><strong>Nom complet :</strong> ${coloc.prenom} ${coloc.nom}</p>
-              <p><strong>Date d'entrée :</strong> ${new Date(coloc.dateEntree).toLocaleDateString('fr-FR')}</p>
-              ${coloc.dateSortie ? `<p><strong>Date de sortie :</strong> ${new Date(coloc.dateSortie).toLocaleDateString('fr-FR')}</p>` : ''}
+            `
+            : `
+            <div class="meta-info">
+              <div class="info-block">
+                <h3>Bailleur (Propriétaire)</h3>
+                <p><strong>Nom :</strong> Propriétaire de la Colocation</p>
+                <p><strong>Adresse :</strong> Adresse de la Colocation</p>
+              </div>
+              <div class="info-block">
+                <h3>Locataire (Colocataire)</h3>
+                <p><strong>Nom complet :</strong> ${coloc.prenom} ${coloc.nom}</p>
+                <p><strong>Date d'entrée :</strong> ${new Date(coloc.dateEntree).toLocaleDateString('fr-FR')}</p>
+                ${coloc.dateSortie ? `<p><strong>Date de sortie :</strong> ${new Date(coloc.dateSortie).toLocaleDateString('fr-FR')}</p>` : ''}
+              </div>
             </div>
-          </div>
 
-          <div class="declaration">
-            ${type === 'simple'
-              ? `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> au titre du loyer et de la provision pour charges pour le mois de <strong>${monthName} ${year}</strong>. Cette quittance libère le locataire de tout paiement pour la période susmentionnée.`
-              : type === 'regul'
+            <div class="declaration">
+              ${type === 'regul'
                 ? `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> (comprenant ${loyerDu.toFixed(2)} € de loyer principal net, ${avanceDue.toFixed(2)} € de provision pour charges pour ce mois et ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)}` : soldeRegul.toFixed(2)} € au titre de la régularisation des charges réelles cumulées) au titre du loyer et des charges pour le mois de <strong>${monthName} ${year}</strong>. <br/><br/>
                    À la date d'édition de cette quittance, l'état récapitulatif des charges cumulées sur la période d'occupation est le suivant :
                    <ul>
@@ -462,8 +482,10 @@ export default function App() {
                    Cette quittance libère le locataire de tout paiement pour la période susmentionnée.`
                 : `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> (comprenant ${loyerDu.toFixed(2)} € de loyer principal net au prorata de sa présence, ${avanceDue.toFixed(2)} € de provision pour charges pour ce mois et ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)}` : soldeRegul.toFixed(2)} € au titre de la régularisation définitive des charges réelles cumulées). <br/><br/>
                    Cette quittance est délivrée pour solde de tout compte et libère définitivement le locataire de toute obligation relative aux loyers et charges pour l'intégralité de sa période d'occupation.`
-            }
-          </div>
+              }
+            </div>
+            `
+          }
 
           <table>
             <thead>
@@ -508,7 +530,7 @@ export default function App() {
 
           <div class="signature-section">
             <div>
-              <p style="font-size: 12px; color: #64748b; margin-bottom: 5px;"><strong>Fait à :</strong> Colocation, le ${generationDateStr}</p>
+              <p style="font-size: 11px; color: #64748b; margin-bottom: 2px;"><strong>Fait à :</strong> Colocation, le ${generationDateStr}</p>
             </div>
             <div class="sig-box">
               <span class="sig-title">${type === 'depart' ? 'Signature du Locataire et Propriétaire' : 'Signature du Bailleur'}</span>
@@ -524,6 +546,410 @@ export default function App() {
       </html>
     `;
     
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
+  const handlePrintAllQuittances = (year: number, monthIndex: number, type: 'simple' | 'regul' | 'depart') => {
+    const activeColocs = getActiveColocatairesForMonth(year, monthIndex).filter(coloc => {
+      if (type === 'depart') {
+        return !!coloc.dateSortie;
+      }
+      return !coloc.dateSortie;
+    });
+
+    if (activeColocs.length === 0) {
+      alert("Aucun colocataire à imprimer pour cette période.");
+      return;
+    }
+
+    const generationDateStr = new Date().toLocaleDateString('fr-FR');
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Le bloqueur de fenêtres pop-up empêche l'ouverture. Veuillez autoriser les pop-ups.");
+      return;
+    }
+
+    const docTitleGlobal = type === 'simple' 
+      ? `Quittances Simples` 
+      : type === 'regul' 
+        ? `Quittances avec Régularisation` 
+        : `Quittances de Départ`;
+
+    let bodyHtml = '';
+    activeColocs.forEach((coloc, index) => {
+      const isRegulChecked = type === 'regul' || type === 'depart';
+      const monthName = NOMS_MOIS[monthIndex];
+      const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+      
+      let presenceDays = 0;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const currentDayStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const hasEntered = currentDayStr >= coloc.dateEntree;
+        const hasNotLeft = !coloc.dateSortie || currentDayStr <= coloc.dateSortie;
+        if (hasEntered && hasNotLeft) {
+          presenceDays++;
+        }
+      }
+
+      const rawLoyer = coloc.loyer !== undefined ? coloc.loyer : 0;
+      const rawCharges = coloc.avanceCharge !== undefined ? coloc.avanceCharge : 150;
+
+      let loyerDu = rawLoyer;
+      let chargesDue = rawCharges;
+
+      if (presenceDays < daysInMonth) {
+        loyerDu = Math.round((presenceDays * (rawLoyer / daysInMonth)) * 100) / 100;
+        chargesDue = Math.round((presenceDays * (rawCharges / daysInMonth)) * 100) / 100;
+      }
+
+      const { avanceDue, cumulCharges, cumulAvances } = getMonthlyChargesDetails(coloc.id, monthIndex);
+      const soldeRegul = Math.round((cumulCharges - cumulAvances) * 100) / 100;
+
+      const totalDu = isRegulChecked
+        ? Math.round((loyerDu + avanceDue + soldeRegul) * 100) / 100
+        : Math.round((loyerDu + chargesDue) * 100) / 100;
+
+      const docTitle = type === 'simple' 
+        ? `Quittance de Loyer` 
+        : type === 'regul' 
+          ? `Quittance de Loyer & Régularisation` 
+          : `Quittance de Loyer de Départ`;
+
+      const docSubtitle = type === 'simple'
+        ? `Document officiel`
+        : type === 'regul'
+          ? `Document officiel avec régularisation`
+          : `Solde de tout compte et régularisation`;
+
+      bodyHtml += `
+        <div class="quittance-card">
+          <div class="header">
+            <div class="header-left">
+              <h1>${docTitle}</h1>
+              <p>${docSubtitle}</p>
+            </div>
+            <div class="header-right">
+              <strong>Date d'édition :</strong> ${generationDateStr}<br/>
+              <strong>Période :</strong> du 01/${String(monthIndex + 1).padStart(2, '0')}/${year} au ${daysInMonth}/${String(monthIndex + 1).padStart(2, '0')}/${year}
+            </div>
+          </div>
+
+          ${type === 'simple' 
+            ? `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 15px;">
+              <div>
+                <span style="font-size: 13px; color: #64748b; text-transform: uppercase; font-weight: 600;">Locataire :</span>
+                <span style="font-size: 15px; font-weight: bold; color: #0f172a; margin-left: 8px;">${coloc.prenom.toUpperCase()} ${coloc.nom.toUpperCase()}</span>
+              </div>
+              <div>
+                <span style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600;">Date d'entrée :</span>
+                <span style="font-size: 13px; font-weight: bold; color: #334155; margin-left: 8px;">${new Date(coloc.dateEntree).toLocaleDateString('fr-FR')}</span>
+              </div>
+            </div>
+            `
+            : `
+            <div class="meta-info">
+              <div class="info-block">
+                <h3>Bailleur (Propriétaire)</h3>
+                <p><strong>Nom :</strong> Propriétaire de la Colocation</p>
+                <p><strong>Adresse :</strong> Adresse de la Colocation</p>
+              </div>
+              <div class="info-block">
+                <h3>Locataire (Colocataire)</h3>
+                <p><strong>Nom complet :</strong> ${coloc.prenom} ${coloc.nom}</p>
+                <p><strong>Date d'entrée :</strong> ${new Date(coloc.dateEntree).toLocaleDateString('fr-FR')}</p>
+                ${coloc.dateSortie ? `<p><strong>Date de sortie :</strong> ${new Date(coloc.dateSortie).toLocaleDateString('fr-FR')}</p>` : ''}
+              </div>
+            </div>
+
+            <div class="declaration">
+              ${type === 'regul'
+                ? `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> (comprenant ${loyerDu.toFixed(2)} € de loyer principal net, ${avanceDue.toFixed(2)} € de provision pour charges pour ce mois et ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)}` : soldeRegul.toFixed(2)} € au titre de la régularisation des charges réelles cumulées) au titre du loyer et des charges pour le mois de <strong>${monthName} ${year}</strong>. <br/><br/>
+                   À la date d'édition de cette quittance, l'état récapitulatif des charges cumulées sur la période d'occupation est le suivant :
+                   <ul>
+                     <li><strong>Montant total des charges réelles :</strong> ${cumulCharges.toFixed(2)} €</li>
+                     <li><strong>Total des charges réglées (provisions versées) :</strong> ${cumulAvances.toFixed(2)} €</li>
+                     <li><strong>Solde cumulé de régularisation :</strong> ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)}` : soldeRegul.toFixed(2)} €</li>
+                   </ul>
+                   Cette quittance libère le locataire de tout paiement pour la période susmentionnée.`
+                : `Je soussigné(e), propriétaire du logement désigné ci-dessus, déclare avoir reçu de la part du locataire désigné ci-dessus la somme de <strong>${totalDu.toFixed(2)} €</strong> (comprenant ${loyerDu.toFixed(2)} € de loyer principal net au prorata de sa présence, ${avanceDue.toFixed(2)} € de provision pour charges pour ce mois et ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)}` : soldeRegul.toFixed(2)} € au titre de la régularisation définitive des charges réelles cumulées). <br/><br/>
+                   Cette quittance est délivrée pour solde de tout compte et libère définitivement le locataire de toute obligation relative aux loyers et charges pour l'intégralité de sa période d'occupation.`
+              }
+            </div>
+            `
+          }
+
+          <table>
+            <thead>
+              <tr>
+                <th>Désignation</th>
+                <th style="text-align: right;">Montant (€)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Loyer principal net (Hors charges)</strong> ${presenceDays < daysInMonth ? `(au prorata de ${presenceDays} jours sur ${daysInMonth})` : ''}</td>
+                <td style="text-align: right;">${loyerDu.toFixed(2)} €</td>
+              </tr>
+              ${isRegulChecked ? `
+              <tr>
+                <td><strong>Provision pour charges payée (ce mois)</strong> ${presenceDays < daysInMonth ? `(au prorata de ${presenceDays} jours sur ${daysInMonth})` : ''}</td>
+                <td style="text-align: right;">${avanceDue.toFixed(2)} €</td>
+              </tr>
+              <tr>
+                <td>
+                  <strong>Régularisation des charges (cumulée à ce jour)</strong><br/>
+                  <small style="color: #64748b; font-size: 11px;">
+                    Cumul charges réelles : ${cumulCharges.toFixed(2)} € | Cumul provisions payées : ${cumulAvances.toFixed(2)} €
+                  </small>
+                </td>
+                <td style="text-align: right; color: ${soldeRegul > 0 ? '#b91c1c' : soldeRegul < 0 ? '#15803d' : '#334155'}; font-weight: 600;">
+                  ${soldeRegul > 0 ? `+${soldeRegul.toFixed(2)} €` : `${soldeRegul.toFixed(2)} €`}
+                </td>
+              </tr>
+              ` : `
+              <tr>
+                <td><strong>Provision pour charges</strong> ${presenceDays < daysInMonth ? `(au prorata de ${presenceDays} jours sur ${daysInMonth})` : ''}</td>
+                <td style="text-align: right;">${chargesDue.toFixed(2)} €</td>
+              </tr>
+              `}
+              <tr class="total-row">
+                <td><strong>Total reçu</strong></td>
+                <td style="text-align: right;">${totalDu.toFixed(2)} €</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="signature-section">
+            <div>
+              <p style="font-size: 11px; color: #64748b; margin-bottom: 2px;"><strong>Fait à :</strong> Colocation, le ${generationDateStr}</p>
+            </div>
+            <div class="sig-box">
+              <span class="sig-title">${type === 'depart' ? 'Signature du Locataire et Propriétaire' : 'Signature du Bailleur'}</span>
+              <div class="sig-line">Signature précédée de la mention "${type === 'depart' ? 'bon pour solde de tout compte' : 'bon pour quittance'}"</div>
+            </div>
+          </div>
+
+          <div class="footer">
+            Cette quittance est délivrée sous réserve d'encaissement effectif du règlement. Elle ne peut en aucun cas être considérée comme une renonciation au paiement de loyers ou charges antérieurs non encore réglés.
+          </div>
+        </div>
+        ${index % 2 === 1 && index !== activeColocs.length - 1 ? '<div class="page-break"></div>' : ''}
+      `;
+    });
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <title>${docTitleGlobal} - ${activeColocs.length} colocataires</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            font-size: 12px;
+            line-height: 1.4;
+          }
+          .quittance-card {
+            max-width: 700px;
+            margin: 0 auto;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 15px 25px;
+            box-sizing: border-box;
+            background-color: #ffffff;
+            height: 138mm;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1.5px solid ${type === 'depart' ? '#be185d' : '#3b82f6'};
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+          }
+          .header-left h1 {
+            font-size: 18px;
+            color: ${type === 'depart' ? '#be185d' : '#1d4ed8'};
+            margin: 0 0 2px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .header-left p {
+            margin: 0;
+            color: #64748b;
+            font-size: 10px;
+          }
+          .header-right {
+            text-align: right;
+            font-size: 10px;
+            color: #475569;
+          }
+          .meta-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 12px;
+          }
+          .info-block {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px 14px;
+          }
+          .info-block h3 {
+            margin: 0 0 6px 0;
+            color: #1e293b;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 4px;
+          }
+          .info-block p {
+            margin: 2px 0;
+            color: #334155;
+            font-size: 11px;
+          }
+          .declaration {
+            background-color: ${type === 'depart' ? '#fdf2f8' : '#eff6ff'};
+            border: 1px solid ${type === 'depart' ? '#fbcfe8' : '#bfdbfe'};
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            font-style: italic;
+            color: ${type === 'depart' ? '#9d174d' : '#1e3a8a'};
+            font-size: 11px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+          }
+          th {
+            background-color: ${type === 'depart' ? '#be185d' : '#1d4ed8'};
+            color: #ffffff;
+            font-weight: 600;
+            text-align: left;
+            padding: 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+          }
+          td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #334155;
+          }
+          .total-row {
+            font-weight: 700;
+            background-color: #f1f5f9;
+          }
+          .total-row td {
+            border-bottom: 1.5px solid #cbd5e1;
+            border-top: 1.5px solid #cbd5e1;
+            color: #0f172a;
+            font-size: 13px;
+          }
+          .signature-section {
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+          }
+          .sig-box {
+            border: 1px dashed #cbd5e1;
+            border-radius: 6px;
+            width: 220px;
+            height: 90px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          }
+          .sig-title {
+            font-size: 9px;
+            color: #64748b;
+            font-weight: bold;
+            text-transform: uppercase;
+          }
+          .sig-line {
+            border-top: 1px solid #cbd5e1;
+            margin-top: 5px;
+            text-align: center;
+            font-size: 9px;
+            color: #94a3b8;
+          }
+          .footer {
+            margin-top: 8px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 9px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 5px;
+          }
+          .print-btn-container {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: flex-end;
+          }
+          .print-btn {
+            background-color: #1d4ed8;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.2s ease;
+          }
+          .print-btn:hover {
+            background-color: #1e40af;
+          }
+          @media print {
+            .print-btn-container {
+              display: none;
+            }
+            body {
+              padding: 0;
+              margin: 0;
+            }
+            .quittance-card {
+              height: 138mm;
+              page-break-inside: avoid;
+              break-inside: avoid;
+              border-bottom: 2px dashed #94a3b8;
+              padding-bottom: 5mm;
+              margin-bottom: 5mm;
+              box-sizing: border-box;
+            }
+            .page-break {
+              page-break-after: always;
+              break-after: page;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-btn-container">
+          <button class="print-btn" onclick="window.print()">🖨️ Imprimer les ${activeColocs.length} Quittances</button>
+        </div>
+        ${bodyHtml}
+      </body>
+      </html>
+    `;
+
     printWindow.document.open();
     printWindow.document.write(htmlContent);
     printWindow.document.close();
@@ -1277,9 +1703,31 @@ export default function App() {
 
                 {/* Liste des colocataires actifs pour la période */}
                 <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '12px', marginTop: '12px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', display: 'block', marginBottom: '10px' }}>
-                    Colocataires actifs en {NOMS_MOIS[quittanceMonth]} {quittanceYear} :
-                  </span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                      Colocataires actifs en {NOMS_MOIS[quittanceMonth]} {quittanceYear} :
+                    </span>
+                    <button
+                      onClick={() => handlePrintAllQuittances(quittanceYear, quittanceMonth, quittanceType)}
+                      className="btn"
+                      style={{
+                        width: 'auto',
+                        padding: '4px 8px',
+                        fontSize: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: 'var(--radius-sm)'
+                      }}
+                    >
+                      🖨️ Imprimer Tout (2/page A4)
+                    </button>
+                  </div>
 
                   {getActiveColocatairesForMonth(quittanceYear, quittanceMonth).filter(coloc => {
                     if (quittanceType === 'depart') {
