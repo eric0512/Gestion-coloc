@@ -81,14 +81,13 @@ export default function Regularisation({
     }
     
     return { chargeReelle, avanceDue, cumulCharges, cumulAvances };
-  };
+  };  const getActiveColocatairesForMonth = (splitYear: number, monthIndex: number) => {
+    const calendarYear = monthIndex >= 5 ? splitYear : splitYear + 1;
+    const daysInMonth = new Date(calendarYear, monthIndex + 1, 0).getDate();
+    const startOfMonthStr = `${calendarYear}-${String(monthIndex + 1).padStart(2, '0')}-01`;
+    const endOfMonthStr = `${calendarYear}-${String(monthIndex + 1).padStart(2, '0')}-${daysInMonth}`;
 
-  const getActiveColocatairesForMonth = (year: number, monthIndex: number) => {
-    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-    const startOfMonthStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`;
-    const endOfMonthStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${daysInMonth}`;
-
-    const isYearRegularized = calculsAnnuels.some(c => Number(c.annee) === Number(year));
+    const isYearRegularized = calculsAnnuels.some(c => Number(c.annee) === Number(splitYear));
 
     return colocataires.filter(coloc => {
       const hasEntered = coloc.dateEntree <= endOfMonthStr;
@@ -96,8 +95,8 @@ export default function Regularisation({
       const isActiveThisMonth = hasEntered && hasNotLeft;
 
       if (!isYearRegularized) {
-        const startOfYearStr = `${year}-01-01`;
-        const endOfYearStr = `${year}-12-31`;
+        const startOfYearStr = `${splitYear}-06-01`;
+        const endOfYearStr = `${splitYear + 1}-05-31`;
         const wasPresentThisYear = coloc.dateEntree <= endOfYearStr && (!coloc.dateSortie || coloc.dateSortie >= startOfYearStr);
         const hasEnteredBeforeOrDuringMonth = coloc.dateEntree <= endOfMonthStr;
         return wasPresentThisYear && hasEnteredBeforeOrDuringMonth;
@@ -105,7 +104,8 @@ export default function Regularisation({
 
       return isActiveThisMonth;
     });
-  };  const handlePrintQuittance = (coloc: Colocataire, year: number, monthIndex: number, type: 'simple' | 'regul' | 'depart' = 'simple') => {
+  };  const handlePrintQuittance = (coloc: Colocataire, splitYear: number, monthIndex: number, type: 'simple' | 'regul' | 'depart' = 'simple') => {
+    const year = monthIndex >= 5 ? splitYear : splitYear + 1;
     const isRegulChecked = type === 'regul' || type === 'depart';
     const monthName = NOMS_MOIS[monthIndex];
     const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
@@ -486,8 +486,9 @@ export default function Regularisation({
     printWindow.document.close();
   };
 
-  const handlePrintAllQuittances = (year: number, monthIndex: number, type: 'simple' | 'regul' | 'depart') => {
-    const activeColocs = getActiveColocatairesForMonth(year, monthIndex).filter(coloc => {
+  const handlePrintAllQuittances = (splitYear: number, monthIndex: number, type: 'simple' | 'regul' | 'depart') => {
+    const year = monthIndex >= 5 ? splitYear : splitYear + 1;
+    const activeColocs = getActiveColocatairesForMonth(splitYear, monthIndex).filter(coloc => {
       if (type === 'depart') {
         return !!coloc.dateSortie;
       }
@@ -914,19 +915,20 @@ export default function Regularisation({
     }
   }, [selectedYear]);
 
-  const isLeapYear = (year: number) => {
-    return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
-  };
-
-  const targetDays = isLeapYear(selectedYear) ? 366 : 365;
+  const startYearStr = `${selectedYear}-06-01`;
+  const endYearStr = `${selectedYear + 1}-05-31`;
+  const startYear = new Date(startYearStr);
+  const endYear = new Date(endYearStr);
+  const diffTime = Math.max(0, endYear.getTime() - startYear.getTime());
+  const targetDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
   // --- Algorithme de Proratisation Temporelle demandé ---
   const getCategoryStats = (periods: PeriodeCharge[], categoryKey: string) => {
     let partChargeN = 0;
     const coveredDaysSet = new Set<string>();
 
-    const yearStartStr = `${selectedYear}-01-01`;
-    const yearEndStr = `${selectedYear}-12-31`;
+    const yearStartStr = startYearStr;
+    const yearEndStr = endYearStr;
 
     periods.forEach(p => {
       // Somme des poids sur toute la période
@@ -1053,7 +1055,7 @@ export default function Regularisation({
 
       <div className="tab-header">
         <FileSpreadsheet size={20} />
-        <span>Bilan & Régularisation ({selectedYear})</span>
+        <span>Bilan & Régularisation ({selectedYear}-{selectedYear + 1})</span>
       </div>
 
       {/* SECTION GÉNÉRATION DES QUITTANCES DE LOYER */}
@@ -1072,13 +1074,13 @@ export default function Regularisation({
               value={quittanceYear}
               onChange={(e) => setQuittanceYear(parseInt(e.target.value) || 2026)}
             >
-              <option value={2024}>2024</option>
-              <option value={2025}>2025</option>
-              <option value={2026}>2026</option>
-              <option value={2027}>2027</option>
-              <option value={2028}>2028</option>
-              <option value={2029}>2029</option>
-              <option value={2030}>2030</option>
+              <option value={2024}>2024-2025</option>
+              <option value={2025}>2025-2026</option>
+              <option value={2026}>2026-2027</option>
+              <option value={2027}>2027-2028</option>
+              <option value={2028}>2028-2029</option>
+              <option value={2029}>2029-2030</option>
+              <option value={2030}>2030-2031</option>
             </select>
           </div>
 
@@ -1167,7 +1169,7 @@ export default function Regularisation({
         <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '16px', marginTop: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-              Colocataires actifs en {NOMS_MOIS[quittanceMonth]} {quittanceYear} :
+              Colocataires actifs en {NOMS_MOIS[quittanceMonth]} {quittanceMonth >= 5 ? quittanceYear : quittanceYear + 1} :
             </span>
             <button
               onClick={() => handlePrintAllQuittances(quittanceYear, quittanceMonth, quittanceType)}
@@ -1334,13 +1336,13 @@ export default function Regularisation({
             value={selectedYear}
             onChange={(e) => setSelectedYear(parseInt(e.target.value) || 2026)}
           >
-            <option value={2024}>2024</option>
-            <option value={2025}>2025</option>
-            <option value={2026}>2026</option>
-            <option value={2027}>2027</option>
-            <option value={2028}>2028</option>
-            <option value={2029}>2029</option>
-            <option value={2030}>2030</option>
+            <option value={2024}>2024-2025</option>
+            <option value={2025}>2025-2026</option>
+            <option value={2026}>2026-2027</option>
+            <option value={2027}>2027-2028</option>
+            <option value={2028}>2028-2029</option>
+            <option value={2029}>2029-2030</option>
+            <option value={2030}>2030-2031</option>
           </select>
         </div>
       </div>
@@ -1349,7 +1351,7 @@ export default function Regularisation({
       <div className="card" style={{ marginBottom: '20px', borderLeft: '4px solid var(--secondary)' }}>
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
           <Calendar size={16} style={{ color: 'var(--secondary)' }} />
-          <span>Suivi de Couverture Temporelle ({selectedYear})</span>
+          <span>Suivi de Couverture Temporelle ({selectedYear}-{selectedYear + 1})</span>
         </div>
         <p className="card-subtitle" style={{ marginBottom: '16px' }}>
           Pour pouvoir clôturer, les charges régulières doivent couvrir l'intégralité des {targetDays} jours de l'année.
@@ -1427,7 +1429,7 @@ export default function Regularisation({
       <div className="card" style={{ marginBottom: '20px', borderLeft: '4px solid var(--primary-light)' }}>
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
           <UsersIcon size={16} style={{ color: 'var(--primary)' }} />
-          <span>Répartition Finale par Colocataire ({selectedYear})</span>
+          <span>Répartition Finale par Colocataire ({selectedYear}-{selectedYear + 1})</span>
         </div>
         <p className="card-subtitle" style={{ marginBottom: '16px' }}>
           Quote-part calculée au prorata exact des jours de présence de chaque colocataire sur l'exercice.
@@ -1504,7 +1506,7 @@ export default function Regularisation({
                 Tous les comptes sont complets !
               </div>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '400px', margin: 0 }}>
-                Vous pouvez maintenant clôturer définitivement l'exercice {selectedYear}. Le bilan sera scellé et archivé dans l'historique de régularisation.
+                Vous pouvez maintenant clôturer définitivement l'exercice {selectedYear}-{selectedYear + 1}. Le bilan sera scellé et archivé dans l'historique de régularisation.
               </p>
               <button 
                 onClick={handleCloseYear}
@@ -1519,7 +1521,7 @@ export default function Regularisation({
                   marginTop: '6px'
                 }}
               >
-                🔒 Clôturer définitivement l'année {selectedYear}
+                🔒 Clôturer définitivement l'exercice {selectedYear}-{selectedYear + 1}
               </button>
             </>
           ) : (

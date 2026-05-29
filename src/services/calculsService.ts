@@ -134,12 +134,12 @@ export function genererBilanAnnuel(
   joursCouvertsSet: Record<keyof ChargesDetaillees, number>;
   totalDays: number;
 } {
-  const startYearStr = `${anneeTarget}-01-01`;
-  const endYearStr = `${anneeTarget}-12-31`;
+  const startYearStr = `${anneeTarget}-06-01`;
+  const endYearStr = `${anneeTarget + 1}-05-31`;
   
   const startYear = new Date(startYearStr);
   const endYear = new Date(endYearStr);
-  const totalDays = isLeapYear(anneeTarget) ? 366 : 365;
+  const totalDays = getDaysBetween(startYearStr, endYearStr);
 
   // Initialisation des structures de cumul des comptes
   const mappingCalcul: Record<string, { totalDu: number; jours: number; nom: string; avanceMensuelle: number }> = {};
@@ -256,9 +256,25 @@ export function genererBilanAnnuel(
  */
 export function getRoommateYearlyAdvances(coloc: Colocataire, year: number): number {
   let totalAdvances = 0;
-  for (let m = 0; m < 12; m++) {
-    const startDate = new Date(year, m, 1);
-    const endDate = new Date(year, m + 1, 0);
+  
+  const splitYearMonths = [
+    { y: year, m: 5 },  // Juin
+    { y: year, m: 6 },  // Juillet
+    { y: year, m: 7 },  // Août
+    { y: year, m: 8 },  // Septembre
+    { y: year, m: 9 },  // Octobre
+    { y: year, m: 10 }, // Novembre
+    { y: year, m: 11 }, // Décembre
+    { y: year + 1, m: 0 }, // Janvier
+    { y: year + 1, m: 1 }, // Février
+    { y: year + 1, m: 2 }, // Mars
+    { y: year + 1, m: 3 }, // Avril
+    { y: year + 1, m: 4 }  // Mai
+  ];
+
+  for (const item of splitYearMonths) {
+    const startDate = new Date(item.y, item.m, 1);
+    const endDate = new Date(item.y, item.m + 1, 0);
     const daysInMonth = endDate.getDate();
 
     const formatDateStr = (d: Date) => {

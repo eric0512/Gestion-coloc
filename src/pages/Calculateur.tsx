@@ -159,9 +159,9 @@ export default function Calculateur({
     return '';
   };
 
-  const getProratedPeriodsForYear = (periods: PeriodeCharge[], year: number, _categoryKey: string) => {
-    const yearStartStr = `${year}-01-01`;
-    const yearEndStr = `${year}-12-31`;
+  const getProratedPeriodsForYear = (periods: PeriodeCharge[], year: number, _category: string) => {
+    const yearStartStr = `${year}-06-01`;
+    const yearEndStr = `${year + 1}-05-31`;
 
     return periods
       .filter(p => p.dateDebut <= yearEndStr && p.dateFin >= yearStartStr)
@@ -339,6 +339,9 @@ export default function Calculateur({
           <DollarSign size={16} style={{ color: 'var(--primary)' }} />
           <span>Saisie des Charges Annuelles</span>
         </div>
+        <p className="card-subtitle" style={{ marginTop: '-8px', marginBottom: '16px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+          Les charges annuelles sont calculées de juin à mai (du 1er juin au 31 mai).
+        </p>
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
           {/* Sélectionner l'année */}
@@ -349,13 +352,13 @@ export default function Calculateur({
               value={selectedYear}
               onChange={(e) => handleYearChange(parseInt(e.target.value) || 2026)}
             >
-              <option value={2024}>2024</option>
-              <option value={2025}>2025</option>
-              <option value={2026}>2026</option>
-              <option value={2027}>2027</option>
-              <option value={2028}>2028</option>
-              <option value={2029}>2029</option>
-              <option value={2030}>2030</option>
+              <option value={2024}>2024-2025</option>
+              <option value={2025}>2025-2026</option>
+              <option value={2026}>2026-2027</option>
+              <option value={2027}>2027-2028</option>
+              <option value={2028}>2028-2029</option>
+              <option value={2029}>2029-2030</option>
+              <option value={2030}>2030-2031</option>
             </select>
           </div>
 
@@ -394,10 +397,10 @@ export default function Calculateur({
       <div className="card" style={{ marginBottom: '20px', borderLeft: '4px solid var(--secondary)' }}>
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
           <Calculator size={16} style={{ color: 'var(--secondary)' }} />
-          <span>Récapitulatif des Charges ({selectedYear})</span>
+          <span>Récapitulatif des Charges ({selectedYear}-{selectedYear + 1})</span>
         </div>
         <p className="card-subtitle" style={{ marginBottom: '16px' }}>
-          Total des dépenses réelles réparties par catégorie de charges pour l'année {selectedYear}.
+          Total des dépenses réelles réparties par catégorie de charges pour l'exercice {selectedYear}-{selectedYear + 1}.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -431,7 +434,7 @@ export default function Calculateur({
               </div>
             ) : (
               <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>
-                Aucune charge de gaz saisie pour {selectedYear}
+                Aucune charge de gaz saisie pour {selectedYear}-{selectedYear + 1}
               </span>
             )}
           </div>
@@ -466,7 +469,7 @@ export default function Calculateur({
               </div>
             ) : (
               <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>
-                Aucune charge d'électricité saisie pour {selectedYear}
+                Aucune charge d'électricité saisie pour {selectedYear}-{selectedYear + 1}
               </span>
             )}
           </div>
@@ -501,7 +504,7 @@ export default function Calculateur({
               </div>
             ) : (
               <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>
-                Aucune charge internet saisie pour {selectedYear}
+                Aucune charge internet saisie pour {selectedYear}-{selectedYear + 1}
               </span>
             )}
           </div>
@@ -537,7 +540,7 @@ export default function Calculateur({
               </div>
             ) : (
               <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>
-                Aucune charge de révision chaudière saisie pour {selectedYear}
+                Aucune charge de révision chaudière saisie pour {selectedYear}-{selectedYear + 1}
               </span>
             )}
           </div>
@@ -572,7 +575,7 @@ export default function Calculateur({
               </div>
             ) : (
               <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', fontStyle: 'italic' }}>
-                Aucune charge commune saisie pour {selectedYear}
+                Aucune charge commune saisie pour {selectedYear}-{selectedYear + 1}
               </span>
             )}
           </div>

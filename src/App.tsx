@@ -151,12 +151,13 @@ export default function App() {
     return { chargeReelle, avanceDue, cumulCharges, cumulAvances };
   };
 
-  const getActiveColocatairesForMonth = (year: number, monthIndex: number) => {
-    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-    const startOfMonthStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`;
-    const endOfMonthStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${daysInMonth}`;
+  const getActiveColocatairesForMonth = (splitYear: number, monthIndex: number) => {
+    const calendarYear = monthIndex >= 5 ? splitYear : splitYear + 1;
+    const daysInMonth = new Date(calendarYear, monthIndex + 1, 0).getDate();
+    const startOfMonthStr = `${calendarYear}-${String(monthIndex + 1).padStart(2, '0')}-01`;
+    const endOfMonthStr = `${calendarYear}-${String(monthIndex + 1).padStart(2, '0')}-${daysInMonth}`;
 
-    const isYearRegularized = calculsAnnuels.some(c => Number(c.annee) === Number(year));
+    const isYearRegularized = calculsAnnuels.some(c => Number(c.annee) === Number(splitYear));
 
     return colocataires.filter(coloc => {
       const hasEntered = coloc.dateEntree <= endOfMonthStr;
@@ -164,8 +165,8 @@ export default function App() {
       const isActiveThisMonth = hasEntered && hasNotLeft;
 
       if (!isYearRegularized) {
-        const startOfYearStr = `${year}-01-01`;
-        const endOfYearStr = `${year}-12-31`;
+        const startOfYearStr = `${splitYear}-06-01`;
+        const endOfYearStr = `${splitYear + 1}-05-31`;
         const wasPresentThisYear = coloc.dateEntree <= endOfYearStr && (!coloc.dateSortie || coloc.dateSortie >= startOfYearStr);
         const hasEnteredBeforeOrDuringMonth = coloc.dateEntree <= endOfMonthStr;
         return wasPresentThisYear && hasEnteredBeforeOrDuringMonth;
@@ -175,7 +176,8 @@ export default function App() {
     });
   };
 
-  const handlePrintQuittance = (coloc: Colocataire, year: number, monthIndex: number, type: 'simple' | 'regul' | 'depart' = 'simple') => {
+  const handlePrintQuittance = (coloc: Colocataire, splitYear: number, monthIndex: number, type: 'simple' | 'regul' | 'depart' = 'simple') => {
+    const year = monthIndex >= 5 ? splitYear : splitYear + 1;
     const isRegulChecked = type === 'regul' || type === 'depart';
     const monthName = NOMS_MOIS[monthIndex];
     const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
@@ -556,8 +558,9 @@ export default function App() {
     printWindow.document.close();
   };
 
-  const handlePrintAllQuittances = (year: number, monthIndex: number, type: 'simple' | 'regul' | 'depart') => {
-    const activeColocs = getActiveColocatairesForMonth(year, monthIndex).filter(coloc => {
+  const handlePrintAllQuittances = (splitYear: number, monthIndex: number, type: 'simple' | 'regul' | 'depart') => {
+    const year = monthIndex >= 5 ? splitYear : splitYear + 1;
+    const activeColocs = getActiveColocatairesForMonth(splitYear, monthIndex).filter(coloc => {
       if (type === 'depart') {
         return !!coloc.dateSortie;
       }
@@ -1172,17 +1175,18 @@ export default function App() {
     });
 
     for (let m = 0; m < 12; m++) {
-      const startDate = new Date(selectedYear, m, 1);
-      const endDate = new Date(selectedYear, m + 1, 0);
+      const targetYear = m >= 5 ? selectedYear : selectedYear + 1;
+      const startDate = new Date(targetYear, m, 1);
+      const endDate = new Date(targetYear, m + 1, 0);
       const daysInMonth = endDate.getDate();
 
       let limitEndDate = new Date(endDate.getTime());
-      if (selectedYear === currentYear) {
+      if (targetYear === currentYear) {
         if (m > currentMonth) {
-          limitEndDate = new Date(selectedYear, m, 0);
+          limitEndDate = new Date(targetYear, m, 0);
         }
-      } else if (selectedYear > currentYear) {
-        limitEndDate = new Date(selectedYear, m, 0);
+      } else if (targetYear > currentYear) {
+        limitEndDate = new Date(targetYear, m, 0);
       }
 
       const parts: PartCalcul[] = [];
@@ -1235,7 +1239,7 @@ export default function App() {
       colocataires.forEach(c => { roommatesDailyAmount[c.id] = 0; });
 
       for (let day = 1; day <= daysInMonth; day++) {
-        const currentDate = new Date(selectedYear, m, day);
+        const currentDate = new Date(targetYear, m, day);
         const currentDateStr = formatDateString(currentDate);
 
         if (currentDate > limitEndDate) continue;
@@ -1264,7 +1268,7 @@ export default function App() {
 
       let monthlyBudgetReel = 0;
       for (let day = 1; day <= daysInMonth; day++) {
-        const currentDate = new Date(selectedYear, m, day);
+        const currentDate = new Date(targetYear, m, day);
         const currentDateStr = formatDateString(currentDate);
         if (currentDate > limitEndDate) continue;
         const activePeriodsOnDay = activePeriods.filter(p => currentDateStr >= p.startDate && currentDateStr <= p.endDate);
@@ -1594,7 +1598,7 @@ export default function App() {
             <div className="modal-header">
               <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Users size={18} style={{ color: 'var(--secondary)' }} />
-                <span>Bilan Global de Régularisation ({selectedYear})</span>
+                <span>Bilan Global de Régularisation ({selectedYear}-{selectedYear + 1})</span>
               </div>
               <button className="icon-btn" onClick={() => setShowBillingModal(false)} aria-label="Fermer">
                 <X size={18} />
@@ -1619,13 +1623,13 @@ export default function App() {
                       value={quittanceYear}
                       onChange={(e) => setQuittanceYear(parseInt(e.target.value) || 2026)}
                     >
-                      <option value={2024}>2024</option>
-                      <option value={2025}>2025</option>
-                      <option value={2026}>2026</option>
-                      <option value={2027}>2027</option>
-                      <option value={2028}>2028</option>
-                      <option value={2029}>2029</option>
-                      <option value={2030}>2030</option>
+                      <option value={2024}>2024-2025</option>
+                      <option value={2025}>2025-2026</option>
+                      <option value={2026}>2026-2027</option>
+                      <option value={2027}>2027-2028</option>
+                      <option value={2028}>2028-2029</option>
+                      <option value={2029}>2029-2030</option>
+                      <option value={2030}>2030-2031</option>
                     </select>
                   </div>
 
@@ -1715,7 +1719,7 @@ export default function App() {
                 <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '12px', marginTop: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                      Colocataires actifs en {NOMS_MOIS[quittanceMonth]} {quittanceYear} :
+                      Colocataires actifs en {NOMS_MOIS[quittanceMonth]} {quittanceMonth >= 5 ? quittanceYear : quittanceYear + 1} :
                     </span>
                     <button
                       onClick={() => handlePrintAllQuittances(quittanceYear, quittanceMonth, quittanceType)}

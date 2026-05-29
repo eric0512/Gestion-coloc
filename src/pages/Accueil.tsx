@@ -100,7 +100,7 @@ export default function Accueil({
                 Saisie des charges
               </span>
               <span style={{ display: 'block', fontSize: '12px', color: 'rgba(255,255,255,0.8)', marginTop: '2px' }}>
-                Répartir le budget annuel au prorata ({selectedYear})
+                Répartir le budget annuel au prorata ({selectedYear}-{selectedYear + 1})
               </span>
             </div>
           </div>
@@ -155,7 +155,7 @@ export default function Accueil({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
             <div>
               <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)' }}>
-                {latestCalculation.titre} ({latestCalculation.annee})
+                {latestCalculation.titre} ({latestCalculation.annee}-{latestCalculation.annee + 1})
               </span>
               <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
                 Budget : {latestCalculation.montantGlobalAnnuel.toFixed(2)} € (le {latestCalculation.dateCalcul})

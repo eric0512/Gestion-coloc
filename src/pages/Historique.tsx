@@ -57,7 +57,7 @@ export default function Historique({
           calculsAnnuels.map((calc) => (
             <div key={calc.id} className="card history-item" style={{ marginBottom: '16px' }}>
               <div className="history-header">
-                <span className="history-month" style={{ textTransform: 'uppercase', fontWeight: 700 }}>Bilan {calc.annee}</span>
+                <span className="history-month" style={{ textTransform: 'uppercase', fontWeight: 700 }}>Bilan {calc.annee}-{calc.annee + 1}</span>
                 <span className="history-total" style={{ fontWeight: 800, color: 'var(--primary)' }}>{calc.montantGlobalAnnuel.toFixed(2)} €</span>
               </div>
               
