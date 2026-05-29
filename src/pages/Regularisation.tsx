@@ -88,7 +88,7 @@ export default function Regularisation({
     const startOfMonthStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`;
     const endOfMonthStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${daysInMonth}`;
 
-    const isYearRegularized = calculsAnnuels.some(c => c.annee === year);
+    const isYearRegularized = calculsAnnuels.some(c => Number(c.annee) === Number(year));
 
     return colocataires.filter(coloc => {
       const hasEntered = coloc.dateEntree <= endOfMonthStr;
