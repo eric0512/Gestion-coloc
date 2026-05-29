@@ -171,24 +171,28 @@ export default function Regularisation({
         <meta charset="UTF-8">
         <title>${docTitle} - ${coloc.prenom} ${coloc.nom}</title>
         <style>
+          @page {
+            size: A4;
+            margin: 10mm;
+          }
           body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: #1e293b;
             background-color: #ffffff;
             margin: 0;
             padding: 20px;
-            font-size: 12px;
-            line-height: 1.4;
+            font-size: 11px;
+            line-height: 1.35;
           }
           .container {
             max-width: 700px;
             margin: 0 auto;
             border: 1px solid #cbd5e1;
             border-radius: 8px;
-            padding: 15px 25px;
+            padding: 12px 20px;
             box-sizing: border-box;
             background-color: #ffffff;
-            height: 138mm;
+            height: 125mm;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -199,11 +203,11 @@ export default function Regularisation({
             justify-content: space-between;
             align-items: flex-start;
             border-bottom: 1.5px solid ${type === 'depart' ? '#be185d' : '#3b82f6'};
-            padding-bottom: 8px;
-            margin-bottom: 10px;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
           }
           .header-left h1 {
-            font-size: 18px;
+            font-size: 16px;
             color: ${type === 'depart' ? '#be185d' : '#1d4ed8'};
             margin: 0 0 2px 0;
             text-transform: uppercase;
@@ -212,67 +216,68 @@ export default function Regularisation({
           .header-left p {
             margin: 0;
             color: #64748b;
-            font-size: 10px;
+            font-size: 9px;
           }
           .header-right {
             text-align: right;
-            font-size: 10px;
+            font-size: 9px;
             color: #475569;
           }
           .meta-info {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
           }
           .info-block {
             background-color: #f8fafc;
             border: 1px solid #e2e8f0;
             border-radius: 6px;
-            padding: 10px 14px;
+            padding: 8px 12px;
           }
           .info-block h3 {
-            margin: 0 0 6px 0;
+            margin: 0 0 4px 0;
             color: #1e293b;
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             border-bottom: 1px solid #cbd5e1;
-            padding-bottom: 4px;
+            padding-bottom: 2px;
           }
           .info-block p {
-            margin: 2px 0;
+            margin: 1px 0;
             color: #334155;
-            font-size: 11px;
+            font-size: 10px;
           }
           .declaration {
             background-color: ${type === 'depart' ? '#fdf2f8' : '#eff6ff'};
             border: 1px solid ${type === 'depart' ? '#fbcfe8' : '#bfdbfe'};
             border-radius: 6px;
-            padding: 10px 14px;
-            margin-bottom: 12px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
             font-style: italic;
             color: ${type === 'depart' ? '#9d174d' : '#1e3a8a'};
-            font-size: 11px;
+            font-size: 10px;
           }
           table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
           }
           th {
             background-color: ${type === 'depart' ? '#be185d' : '#1d4ed8'};
             color: #ffffff;
             font-weight: 600;
             text-align: left;
-            padding: 8px;
-            font-size: 11px;
+            padding: 6px 8px;
+            font-size: 10px;
             text-transform: uppercase;
           }
           td {
-            padding: 6px 8px;
+            padding: 4px 8px;
             border-bottom: 1px solid #e2e8f0;
             color: #334155;
+            font-size: 10px;
           }
           .total-row {
             font-weight: 700;
@@ -282,10 +287,10 @@ export default function Regularisation({
             border-bottom: 1.5px solid #cbd5e1;
             border-top: 1.5px solid #cbd5e1;
             color: #0f172a;
-            font-size: 13px;
+            font-size: 11px;
           }
           .signature-section {
-            margin-top: 8px;
+            margin-top: 4px;
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
@@ -294,32 +299,32 @@ export default function Regularisation({
             border: 1px dashed #cbd5e1;
             border-radius: 6px;
             width: 220px;
-            height: 90px;
-            padding: 8px 12px;
+            height: 75px;
+            padding: 6px 10px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
           }
           .sig-title {
-            font-size: 9px;
+            font-size: 8px;
             color: #64748b;
             font-weight: bold;
             text-transform: uppercase;
           }
           .sig-line {
             border-top: 1px solid #cbd5e1;
-            margin-top: 5px;
+            margin-top: 3px;
             text-align: center;
-            font-size: 9px;
+            font-size: 8px;
             color: #94a3b8;
           }
           .footer {
-            margin-top: 8px;
+            margin-top: 4px;
             text-align: center;
             color: #94a3b8;
-            font-size: 9px;
+            font-size: 8px;
             border-top: 1px solid #e2e8f0;
-            padding-top: 5px;
+            padding-top: 4px;
           }
           .print-btn-container {
             margin-bottom: 20px;
@@ -374,14 +379,14 @@ export default function Regularisation({
 
           ${type === 'simple' 
             ? `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px;">
               <div>
-                <span style="font-size: 13px; color: #64748b; text-transform: uppercase; font-weight: 600;">Locataire :</span>
-                <span style="font-size: 15px; font-weight: bold; color: #0f172a; margin-left: 8px;">${coloc.prenom.toUpperCase()} ${coloc.nom.toUpperCase()}</span>
+                <span style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600;">Locataire :</span>
+                <span style="font-size: 13px; font-weight: bold; color: #0f172a; margin-left: 8px;">${coloc.prenom.toUpperCase()} ${coloc.nom.toUpperCase()}</span>
               </div>
               <div>
-                <span style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600;">Date d'entrée :</span>
-                <span style="font-size: 13px; font-weight: bold; color: #334155; margin-left: 8px;">${new Date(coloc.dateEntree).toLocaleDateString('fr-FR')}</span>
+                <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 600;">Date d'entrée :</span>
+                <span style="font-size: 11px; font-weight: bold; color: #334155; margin-left: 8px;">${new Date(coloc.dateEntree).toLocaleDateString('fr-FR')}</span>
               </div>
             </div>
             `
@@ -437,7 +442,7 @@ export default function Regularisation({
               <tr>
                 <td>
                   <strong>Régularisation des charges (cumulée à ce jour)</strong><br/>
-                  <small style="color: #64748b; font-size: 11px;">
+                  <small style="color: #64748b; font-size: 10px;">
                     Cumul charges réelles : ${cumulCharges.toFixed(2)} € | Cumul provisions payées : ${cumulAvances.toFixed(2)} €
                   </small>
                 </td>
@@ -460,7 +465,7 @@ export default function Regularisation({
 
           <div class="signature-section">
             <div>
-              <p style="font-size: 11px; color: #64748b; margin-bottom: 2px;"><strong>Fait à :</strong> Colocation, le ${generationDateStr}</p>
+              <p style="font-size: 10px; color: #64748b; margin-bottom: 2px;"><strong>Fait à :</strong> Colocation, le ${generationDateStr}</p>
             </div>
             <div class="sig-box">
               <span class="sig-title">${type === 'depart' ? 'Signature du Locataire et Propriétaire' : 'Signature du Bailleur'}</span>
@@ -677,24 +682,28 @@ export default function Regularisation({
         <meta charset="UTF-8">
         <title>${docTitleGlobal} - ${activeColocs.length} colocataires</title>
         <style>
+          @page {
+            size: A4;
+            margin: 5mm 10mm;
+          }
           body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: #1e293b;
             background-color: #ffffff;
             margin: 0;
-            padding: 20px;
-            font-size: 12px;
-            line-height: 1.4;
+            padding: 0;
+            font-size: 11px;
+            line-height: 1.35;
           }
           .quittance-card {
             max-width: 700px;
             margin: 0 auto;
             border: 1px solid #cbd5e1;
             border-radius: 8px;
-            padding: 15px 25px;
+            padding: 12px 20px;
             box-sizing: border-box;
             background-color: #ffffff;
-            height: 138mm;
+            height: 125mm;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -705,11 +714,11 @@ export default function Regularisation({
             justify-content: space-between;
             align-items: flex-start;
             border-bottom: 1.5px solid ${type === 'depart' ? '#be185d' : '#3b82f6'};
-            padding-bottom: 8px;
-            margin-bottom: 10px;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
           }
           .header-left h1 {
-            font-size: 18px;
+            font-size: 16px;
             color: ${type === 'depart' ? '#be185d' : '#1d4ed8'};
             margin: 0 0 2px 0;
             text-transform: uppercase;
@@ -718,67 +727,68 @@ export default function Regularisation({
           .header-left p {
             margin: 0;
             color: #64748b;
-            font-size: 10px;
+            font-size: 9px;
           }
           .header-right {
             text-align: right;
-            font-size: 10px;
+            font-size: 9px;
             color: #475569;
           }
           .meta-info {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
           }
           .info-block {
             background-color: #f8fafc;
             border: 1px solid #e2e8f0;
             border-radius: 6px;
-            padding: 10px 14px;
+            padding: 8px 12px;
           }
           .info-block h3 {
-            margin: 0 0 6px 0;
+            margin: 0 0 4px 0;
             color: #1e293b;
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             border-bottom: 1px solid #cbd5e1;
-            padding-bottom: 4px;
+            padding-bottom: 2px;
           }
           .info-block p {
-            margin: 2px 0;
+            margin: 1px 0;
             color: #334155;
-            font-size: 11px;
+            font-size: 10px;
           }
           .declaration {
             background-color: ${type === 'depart' ? '#fdf2f8' : '#eff6ff'};
             border: 1px solid ${type === 'depart' ? '#fbcfe8' : '#bfdbfe'};
             border-radius: 6px;
-            padding: 10px 14px;
-            margin-bottom: 12px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
             font-style: italic;
             color: ${type === 'depart' ? '#9d174d' : '#1e3a8a'};
-            font-size: 11px;
+            font-size: 10px;
           }
           table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
           }
           th {
             background-color: ${type === 'depart' ? '#be185d' : '#1d4ed8'};
             color: #ffffff;
             font-weight: 600;
             text-align: left;
-            padding: 8px;
-            font-size: 11px;
+            padding: 6px 8px;
+            font-size: 10px;
             text-transform: uppercase;
           }
           td {
-            padding: 6px 8px;
+            padding: 4px 8px;
             border-bottom: 1px solid #e2e8f0;
             color: #334155;
+            font-size: 10px;
           }
           .total-row {
             font-weight: 700;
@@ -788,10 +798,10 @@ export default function Regularisation({
             border-bottom: 1.5px solid #cbd5e1;
             border-top: 1.5px solid #cbd5e1;
             color: #0f172a;
-            font-size: 13px;
+            font-size: 11px;
           }
           .signature-section {
-            margin-top: 8px;
+            margin-top: 4px;
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
@@ -800,32 +810,32 @@ export default function Regularisation({
             border: 1px dashed #cbd5e1;
             border-radius: 6px;
             width: 220px;
-            height: 90px;
-            padding: 8px 12px;
+            height: 75px;
+            padding: 6px 10px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
           }
           .sig-title {
-            font-size: 9px;
+            font-size: 8px;
             color: #64748b;
             font-weight: bold;
             text-transform: uppercase;
           }
           .sig-line {
             border-top: 1px solid #cbd5e1;
-            margin-top: 5px;
+            margin-top: 3px;
             text-align: center;
-            font-size: 9px;
+            font-size: 8px;
             color: #94a3b8;
           }
           .footer {
-            margin-top: 8px;
+            margin-top: 4px;
             text-align: center;
             color: #94a3b8;
-            font-size: 9px;
+            font-size: 8px;
             border-top: 1px solid #e2e8f0;
-            padding-top: 5px;
+            padding-top: 4px;
           }
           .print-btn-container {
             margin-bottom: 20px;
@@ -856,7 +866,7 @@ export default function Regularisation({
               margin: 0;
             }
             .quittance-card {
-              height: 138mm;
+              height: 125mm;
               page-break-inside: avoid;
               break-inside: avoid;
               border-bottom: 2px dashed #94a3b8;
