@@ -1286,6 +1286,40 @@ export default function App() {
                     </div>
                   )}
                 </div>
+                {/* Panel de diagnostic technique */}
+                <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-color)', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  <details>
+                    <summary style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--primary)' }}>🔍 Diagnostic technique des colocataires ({quittanceYear})</summary>
+                    <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px', backgroundColor: 'rgba(0,0,0,0.1)', padding: '8px', borderRadius: '4px' }}>
+                      <div><strong>Année régularisée dans l'historique :</strong> {calculsAnnuels.some(c => Number(c.annee) === Number(quittanceYear)) ? "🔴 OUI (les colocataires partis sont donc masqués)" : "🟢 NON (les colocataires partis doivent être visibles)"}</div>
+                      <div style={{ marginTop: '4px' }}><strong>Détails par colocataire dans la base :</strong></div>
+                      {colocataires.map(coloc => {
+                        const daysInMonth = new Date(quittanceYear, quittanceMonth + 1, 0).getDate();
+                        const startOfMonthStr = `${quittanceYear}-${String(quittanceMonth + 1).padStart(2, '0')}-01`;
+                        const endOfMonthStr = `${quittanceYear}-${String(quittanceMonth + 1).padStart(2, '0')}-${daysInMonth}`;
+                        
+                        const hasEntered = coloc.dateEntree <= endOfMonthStr;
+                        const hasNotLeft = !coloc.dateSortie || coloc.dateSortie >= startOfMonthStr;
+                        
+                        const startOfYearStr = `${quittanceYear}-01-01`;
+                        const endOfYearStr = `${quittanceYear}-12-31`;
+                        const wasPresentThisYear = coloc.dateEntree <= endOfYearStr && (!coloc.dateSortie || coloc.dateSortie >= startOfYearStr);
+                        const hasEnteredBeforeOrDuringMonth = coloc.dateEntree <= endOfMonthStr;
+                        
+                        return (
+                          <div key={coloc.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px', marginBottom: '4px' }}>
+                            <strong>{coloc.prenom} {coloc.nom} :</strong><br/>
+                            • Entrée: <span style={{ color: 'var(--text-primary)' }}>{coloc.dateEntree}</span> | Sortie: <span style={{ color: 'var(--text-primary)' }}>{coloc.dateSortie || 'null'}</span><br/>
+                            • Présent cette année ({quittanceYear}) : {wasPresentThisYear ? "✅ Oui" : "❌ Non"}<br/>
+                            • Entré avant/pendant le mois : {hasEnteredBeforeOrDuringMonth ? "✅ Oui" : "❌ Non"}<br/>
+                            • Doit être affiché : {(wasPresentThisYear && hasEnteredBeforeOrDuringMonth) ? "🟢 OUI" : "🔴 NON"}<br/>
+                            • Actif ce mois-ci : {(hasEntered && hasNotLeft) ? "✅ Oui" : "❌ Non"}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </details>
+                </div>
               </div>
 
 
