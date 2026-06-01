@@ -42,9 +42,7 @@ export default function Regularisation({
   const NOMS_MOIS = [
     'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-  ];
-
-  const [selectedYear, setSelectedYear] = useState<number>(2026);
+  ];  const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [quittanceYear, setQuittanceYear] = useState<number>(2026);
   const [quittanceMonth, setQuittanceMonth] = useState<number>(new Date().getMonth());
   const [quittanceType, setQuittanceType] = useState<'simple' | 'regul' | 'depart'>('simple');
@@ -57,19 +55,25 @@ export default function Regularisation({
 
     if (!currentResult) return { chargeReelle, avanceDue, cumulCharges, cumulAvances };
 
-    const rep = currentResult.repartitionsMensuelles[monthIndex];
+    const rep = currentResult.repartitionsMensuelles.find((r: any) => r.numeroMois === monthIndex);
     if (rep) {
       const part = rep.parts.find((p: any) => p.colocId === colocId);
       if (part) {
         let cumDuPrev = 0;
         let cumAvancePrev = 0;
         
-        if (monthIndex > 0) {
-          const prevRep = currentResult.repartitionsMensuelles[monthIndex - 1];
-          const prevPart = prevRep.parts.find((p: any) => p.colocId === colocId);
-          if (prevPart) {
-            cumDuPrev = prevPart.montantDu;
-            cumAvancePrev = prevPart.avanceDue || 0;
+        const chronologicalMonths = [5, 6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4];
+        const chronoIndex = chronologicalMonths.indexOf(monthIndex);
+        
+        if (chronoIndex > 0) {
+          const prevMonthIndex = chronologicalMonths[chronoIndex - 1];
+          const prevRep = currentResult.repartitionsMensuelles.find((r: any) => r.numeroMois === prevMonthIndex);
+          if (prevRep) {
+            const prevPart = prevRep.parts.find((p: any) => p.colocId === colocId);
+            if (prevPart) {
+              cumDuPrev = prevPart.montantDu;
+              cumAvancePrev = prevPart.avanceDue || 0;
+            }
           }
         }
         
@@ -81,7 +85,9 @@ export default function Regularisation({
     }
     
     return { chargeReelle, avanceDue, cumulCharges, cumulAvances };
-  };  const getActiveColocatairesForMonth = (splitYear: number, monthIndex: number) => {
+  };
+
+  const getActiveColocatairesForMonth = (splitYear: number, monthIndex: number) => {
     const calendarYear = monthIndex >= 5 ? splitYear : splitYear + 1;
     const daysInMonth = new Date(calendarYear, monthIndex + 1, 0).getDate();
     const startOfMonthStr = `${calendarYear}-${String(monthIndex + 1).padStart(2, '0')}-01`;

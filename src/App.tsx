@@ -125,19 +125,25 @@ export default function App() {
 
     if (!currentResult) return { chargeReelle, avanceDue, cumulCharges, cumulAvances };
 
-    const rep = currentResult.repartitionsMensuelles[monthIndex];
+    const rep = currentResult.repartitionsMensuelles.find((r: any) => r.numeroMois === monthIndex);
     if (rep) {
       const part = rep.parts.find((p: any) => p.colocId === colocId);
       if (part) {
         let cumDuPrev = 0;
         let cumAvancePrev = 0;
         
-        if (monthIndex > 0) {
-          const prevRep = currentResult.repartitionsMensuelles[monthIndex - 1];
-          const prevPart = prevRep.parts.find((p: any) => p.colocId === colocId);
-          if (prevPart) {
-            cumDuPrev = prevPart.montantDu;
-            cumAvancePrev = prevPart.avanceDue || 0;
+        const chronologicalMonths = [5, 6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4];
+        const chronoIndex = chronologicalMonths.indexOf(monthIndex);
+        
+        if (chronoIndex > 0) {
+          const prevMonthIndex = chronologicalMonths[chronoIndex - 1];
+          const prevRep = currentResult.repartitionsMensuelles.find((r: any) => r.numeroMois === prevMonthIndex);
+          if (prevRep) {
+            const prevPart = prevRep.parts.find((p: any) => p.colocId === colocId);
+            if (prevPart) {
+              cumDuPrev = prevPart.montantDu;
+              cumAvancePrev = prevPart.avanceDue || 0;
+            }
           }
         }
         
@@ -1174,7 +1180,8 @@ export default function App() {
       };
     });
 
-    for (let m = 0; m < 12; m++) {
+    const chronologicalMonths = [5, 6, 7, 8, 9, 10, 11, 0, 1, 2, 3, 4];
+    for (const m of chronologicalMonths) {
       const targetYear = m >= 5 ? selectedYear : selectedYear + 1;
       const startDate = new Date(targetYear, m, 1);
       const endDate = new Date(targetYear, m + 1, 0);
